@@ -1,5 +1,7 @@
 # Cholistan Canal: companion tools
 
+**Live site:** https://cholistan-canal.vercel.app
+
 Interactive companion to the paper *Concrete before water: governance gaps behind Pakistan's stalled Cholistan Canal and lessons for desert irrigation megaprojects* (Rafique, Ali & Ali; manuscript prepared for *Water Policy*).
 
 - `index.html`: landing page
