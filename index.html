@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cholistan Canal · Concrete before water</title>
+<meta name="description" content="Interactive companion tools to the paper 'Concrete before water: governance gaps behind Pakistan's stalled Cholistan Canal'.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{--paper:#ECEFE9;--panel:#F8F9F5;--ink:#16252A;--ink2:#4B5C60;--line:#C6CEC6;--canal:#0A8A86;--bad:#B23A2C;--warn:#B77A08}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 'Source Sans 3',system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:40px 20px 60px;display:grid;gap:26px}
+.eyebrow{font:500 12px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+h1{font:700 clamp(36px,6vw,62px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;margin:8px 0 12px}
+h2{font:700 26px/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase;margin:0}
+p{margin:0;color:var(--ink2);max-width:70ch}
+.cite{border-left:4px solid var(--ink);padding:10px 14px;background:var(--panel);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+a.card{display:grid;gap:8px;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--canal);padding:18px 20px}
+a.card:hover{border-color:var(--ink)}
+a.card span{font:500 13px 'JetBrains Mono',monospace;color:var(--canal)}
+.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.nums div{background:var(--panel);padding:12px 14px}
+.nums b{display:block;font:700 32px/1 'Barlow Condensed',sans-serif}
+.nums small{font-size:13px;color:var(--ink2)}
+footer{font-size:13px;color:var(--ink2)}
+@media(max-width:720px){.cards{grid-template-columns:1fr}.nums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<div class="eyebrow">Companion tools · Cholistan Canal, Phase I</div>
+<h1>Concrete before water</h1>
+<p>Pakistan's Cholistan Canal was inaugurated in February 2025 and put on hold by the Council of Common Interests 72 days later. These tools let you test the water behind it using the same data and model as the paper.</p>
+</header>
+
+<div class="cite"><b>Rafique, S., Ali, F. &amp; Ali, R. B.</b> Concrete before water: governance gaps behind Pakistan's stalled Cholistan Canal and lessons for desert irrigation megaprojects. Manuscript prepared for <i>Water Policy</i> (IWA Publishing). Department of City and Regional Planning, University of Engineering and Technology, Lahore.</div>
+
+<section class="nums" aria-label="Key results">
+<div><b>22</b><small>days a normal year at full flow under the IRSA certificate</small></div>
+<div><b>18%</b><small>of cotton water need met on the Phase I area</small></div>
+<div><b>1.9–3.0</b><small>km³ a year taken from downstream if run at design flow all year</small></div>
+<div><b>4 of 6</b><small>governance gaps scored as failing; the other two weak</small></div>
+</section>
+
+<section class="cards">
+<a class="card" href="/simulator">
+<h2>Water balance simulator</h2>
+<p>The ten-daily model used in the paper. Run every year from 2014-15 to 2025-26 under four water rules and see what the canal gets and whose water it takes.</p>
+<span>Open simulator →</span>
+</a>
+<a class="card" href="/link-route">
+<h2>Link route console</h2>
+<p>Follow the water from the Jhelum through the link canals to Sulemanki on three days of measured barrage flows in 2025: winter, early summer and the September flood.</p>
+<span>Open console →</span>
+</a>
+</section>
+
+<footer>The ten-daily flow pattern is modelled from IRSA's seasonal totals, not observed. River, barrage and canal positions on the maps are approximate, and canal routes are schematic because no alignment drawing is public.</footer>
+</main>
+</body>
+</html>

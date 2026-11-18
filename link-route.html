@@ -1,0 +1,425 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cholistan Link Route Console · Concrete before water</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a single dark control-room console. Live map on the left, status and controls on the right, the route ribbon across the bottom. */
+:root{
+--bg:#081019; --bg2:#0C1724; --panel:#101D2D; --panel2:#152638; --line:#21364D; --ink:#E4EDF7; --ink2:#93A6BD; --ink3:#5E7591;
+--water:#3EA2F5; --water2:#1E4E7A; --canal:#2CD3BE; --canal2:#12524B; --sand:#4A3A22; --sandink:#C9A15C; --sea:#0B2236;
+--ok:#47D97E; --okbg:rgba(71,217,126,.13); --bad:#FF6B5E; --badbg:rgba(255,107,94,.14); --warn:#F7B93A; --warnbg:rgba(247,185,58,.14);
+--grid:rgba(147,166,189,.07); --dry:#7A6440; --glow:rgba(44,211,190,.35);
+--f-display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:radial-gradient(1200px 600px at 15% -10%, #12304a 0%, transparent 60%), var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.5; min-height:100%}
+.wrap{max-width:1320px;margin:0 auto;padding-block:22px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.05;text-wrap:balance;letter-spacing:.02em}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2)}
+
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px 24px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.top h1{font-size:clamp(30px,4.6vw,50px);font-weight:700;text-transform:uppercase}
+.top h1 em{font-style:normal;color:var(--canal)}
+.top .sub{color:var(--ink2);margin-top:6px;max-width:62ch}
+.route{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--f-mono);font-size:12px;color:var(--ink2)}
+.route b{color:var(--ink);font-weight:500;border:1px solid var(--line);background:var(--panel);padding:3px 8px;border-radius:3px}
+.route i{font-style:normal;color:var(--canal)}
+
+.console{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+.mapbox{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;min-width:0;box-shadow:0 0 0 1px rgba(0,0,0,.3),0 20px 60px -30px rgba(0,0,0,.8)}
+.mapbox canvas{display:block;width:100%}
+.hud{position:absolute;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;pointer-events:none}
+.hudpill{background:rgba(8,16,25,.82);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-family:var(--f-mono);font-size:12px}
+.hudpill span{color:var(--ink2)}
+.hudpill b{font-weight:600}
+.seasonTag{position:absolute;top:10px;left:10px;pointer-events:none;background:rgba(8,16,25,.82);border:1px solid var(--line);border-left:3px solid var(--water);border-radius:4px;padding:8px 12px}
+.seasonTag .big{font-family:var(--f-display);font-size:22px;font-weight:700;text-transform:uppercase;line-height:1}
+.seasonTag .sm{font-family:var(--f-mono);font-size:11px;color:var(--ink2)}
+
+.side{display:grid;gap:14px;min-width:0}
+.status{border-radius:6px;padding:16px;border:1px solid var(--line);background:var(--panel);display:grid;gap:8px;position:relative;overflow:hidden}
+.status::after{content:"";position:absolute;inset:auto -40px -60px auto;width:180px;height:180px;border-radius:50%;background:var(--glowc,transparent);filter:blur(40px);opacity:.6}
+.status.ok{--glowc:var(--ok);border-color:rgba(71,217,126,.45)}.status.bad{--glowc:var(--bad);border-color:rgba(255,107,94,.5)}.status.warn{--glowc:var(--warn);border-color:rgba(247,185,58,.45)}
+.badge{justify-self:start;font-family:var(--f-mono);font-size:12px;font-weight:600;letter-spacing:.12em;padding:4px 10px;border-radius:3px;text-transform:uppercase}
+.status.ok .badge{background:var(--okbg);color:var(--ok)}.status.bad .badge{background:var(--badbg);color:var(--bad)}.status.warn .badge{background:var(--warnbg);color:var(--warn)}
+.status h2{font-size:24px;font-weight:600}
+.status p{color:var(--ink2);font-size:14px;position:relative;z-index:1}
+
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.metric .k{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-family:var(--f-mono)}
+.metric .v{font-family:var(--f-display);font-size:30px;font-weight:600;line-height:1}
+.metric .v small{font-family:var(--f-mono);font-size:12px;color:var(--ink2);font-weight:400;margin-left:4px}
+.meter{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.meter div{height:100%;border-radius:3px;transition:width .4s ease, background-color .4s}
+.metric.alert .v{color:var(--bad)}
+
+.deck{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.seg{display:inline-flex;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13.5px;font-weight:500;border:0;background:transparent;color:var(--ink2);padding:7px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"].mon{background:var(--water);color:#06121F}
+.seg button[aria-pressed="true"].win{background:var(--warn);color:#1B1200}
+.top a{color:var(--canal)}
+.btn{font:inherit;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.btn:hover,.seg button:hover{filter:brightness(1.15)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--canal);outline-offset:2px}
+.slider{display:grid;gap:6px}
+.slider .lab{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slider .lab label{font-weight:500}
+.slider .lab .val{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--canal)}
+.slider .lab .val small{font-family:var(--f-mono);font-size:12px;color:var(--ink2);margin-left:3px}
+input[type=range]{width:100%;accent-color:var(--canal);height:22px}
+.ticks{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10.5px;color:var(--ink3)}
+.branches{display:grid;gap:8px}
+.br{display:grid;grid-template-columns:72px minmax(0,1fr) 78px;gap:10px;align-items:center;font-size:13px}
+.br .bar{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.br .bar div{height:100%;background:linear-gradient(90deg,var(--canal2),var(--canal));transition:width .35s}
+.br .n{font-family:var(--f-mono);text-align:right}
+
+.ribbon{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:10px;min-width:0}
+.ribbonbox{overflow-x:auto}
+.ribbon svg{display:block;min-width:760px;width:100%;height:auto}
+.foot{font-size:12.5px;color:var(--ink3);display:grid;gap:4px}
+.foot b{color:var(--ink2);font-weight:500}
+
+@media (max-width:1000px){ .console{grid-template-columns:1fr} }
+@media (max-width:480px){ .metric .v{font-size:25px} .br{grid-template-columns:60px minmax(0,1fr) 70px} }
+@media (prefers-reduced-motion: reduce){ .meter div,.br .bar div{transition:none} }
+</style>
+
+<div class="wrap">
+<header class="top">
+<div>
+<div class="eyebrow">Companion to "Concrete before water" · Rafique, Ali &amp; Ali · <a href="/" style="color:var(--canal)">all tools</a></div>
+<h1>Cholistan Link Route <em>Console</em></h1>
+<p class="sub">Pick one of the three days of measured barrage flows used in the paper (Figure 5), set how much the canal draws at Sulemanki, and see whether the water would be flood surplus or would come out of Sindh's supplies and the delta.</p>
+</div>
+<div class="route" aria-label="Water route">
+<b>Jhelum</b><i>→</i><b>Rasul</b><i>RQ</i><b>Qadirabad</b><i>QB</i><b>Balloki</b><i>BS</i><b>Sulemanki</b><i>→</i><b>Cholistan</b>
+</div>
+</header>
+
+<section class="console">
+<div class="mapbox">
+<canvas id="map" role="img" aria-label="Map of the Punjab and Indus river system with the Cholistan canal, link canals and animated flows"></canvas>
+<div class="seasonTag"><div class="sm" id="tagTop">Season</div><div class="big" id="tagBig">Peak monsoon</div><div class="sm" id="tagSub"></div></div>
+<div class="hud">
+<div class="hudpill"><span>Desert greening </span><b id="hudGreen">100% target</b></div>
+<div class="hudpill"><span>Tail deficit alert </span><b id="hudAlert">None (full flow)</b></div>
+</div>
+</div>
+
+<aside class="side">
+<div class="status ok" id="status">
+<span class="badge" id="badge">Feasible (surplus)</span>
+<h2 id="stHead">Monsoon surplus covers the canal</h2>
+<p id="stText"></p>
+</div>
+<div class="metrics">
+<div class="metric"><span class="k">Below Kotri, to the sea</span><span class="v" id="mIn">0<small>cusecs</small></span><div class="meter"><div id="barIn" style="background:var(--water)"></div></div></div>
+<div class="metric"><span class="k">Sutlej at Sulemanki</span><span class="v" id="mLink">0<small>cusecs</small></span><div class="meter"><div id="barLink" style="background:var(--water)"></div></div></div>
+<div class="metric"><span class="k">Canal discharge</span><span class="v" id="mOut">4,120<small>cusecs</small></span><div class="meter"><div id="barOut" style="background:var(--canal)"></div></div></div>
+<div class="metric" id="defCard"><span class="k">Taken from Sindh &amp; delta</span><span class="v" id="mDef">0<small>cusecs</small></span><div class="meter"><div id="barDef" style="background:var(--bad)"></div></div></div>
+</div>
+<div class="deck">
+<div class="row">
+<div class="seg" role="group" aria-label="Season">
+<button type="button" class="win" data-day="feb" aria-pressed="true">20 Feb 2025</button>
+<button type="button" class="win" data-day="apr" aria-pressed="false">22 Apr 2025</button>
+<button type="button" class="mon" data-day="sep" aria-pressed="false">9 Sep 2025</button>
+</div>
+<button type="button" class="btn" id="btnPause">Pause flow</button>
+</div>
+<div class="slider">
+<div class="lab"><label for="out">Cholistan outtake</label><span class="val"><span id="outVal">4,120</span><small>cusecs</small></span></div>
+<input type="range" id="out" min="0" max="5000" step="50" value="4120">
+<div class="ticks"><span>0</span><span>2,500</span><span>4,120 design</span><span>5,000</span></div>
+</div>
+<div class="branches">
+<div class="eyebrow">Where the draw goes</div>
+<div class="br"><span>Marot</span><div class="bar"><div id="bMarot"></div></div><span class="n" id="vMarot">1,300 cs</span></div>
+<div class="br"><span>Main line</span><div class="bar"><div id="bDera"></div></div><span class="n" id="vDera">2,820 cs</span></div>
+<p style="font-size:12px;color:var(--ink3)">Marot branch: 1,300 cusecs on the sponsor's map, 1,370 on the site board. The paper treats this disagreement as part of the scope gap.</p>
+</div>
+</div>
+</aside>
+</section>
+
+<section class="ribbon">
+<div class="row"><h3 style="font-size:18px;text-transform:uppercase">Flow along the route</h3><span class="eyebrow" id="ribLab"></span></div>
+<div class="ribbonbox"><svg id="rib" viewBox="0 0 960 150" aria-label="Schematic of flow from the Jhelum through the link canals to Sulemanki, the Cholistan branches and the lower Indus"></svg></div>
+<div class="foot">
+<p><b>Figures</b> are Federal Flood Commission barrage discharges for 20 February, 22 April and 9 September 2025, the three days shown in Figure 5 of the paper. Surplus is flow below Kotri above a delta minimum of 5,000 cusecs (141.6 m³/s), the figure cited by Sindh, since the 1991 Accord leaves it undefined. Whatever the canal draws beyond that surplus is counted as taken from Sindh's supplies and the delta. The planned link upgrade adds up to 5,000 cusecs of capacity to Sulemanki. 1 cusec = 0.0283 m³/s.</p>
+<p><b>Paper</b>: Rafique, S., Ali, F. &amp; Ali, R. B. Concrete before water: governance gaps behind Pakistan's stalled Cholistan Canal and lessons for desert irrigation megaprojects. Manuscript prepared for <i>Water Policy</i>. For the full year-by-year water balance, open the <a href="/simulator" style="color:var(--canal)">simulator</a>.</p>
+<p><b>Map</b> positions of rivers, barrages and link canals are approximate. The canal and branch routes are schematic, as no alignment drawing is public. The border is drawn only for orientation.</p>
+</div>
+</section>
+</div>
+
+<script>
+// ---------- geography (approximate, for orientation) ----------
+const B = {lon0:66.9, lon1:75.3, lat0:23.9, lat1:34.4};
+const COSL = Math.cos(29.3*Math.PI/180);
+const RIV = {
+indusUp:  [[34.09,72.69],[33.90,72.25],[33.40,71.85],[32.96,71.55],[32.43,71.38],[31.85,70.95],[31.20,70.75],[30.70,70.65],[30.05,70.80],[29.40,70.62],[28.95,70.37]],
+indusMid: [[28.95,70.37],[28.42,69.71],[28.00,69.20],[27.68,68.85],[27.25,68.20],[26.60,67.95],[26.00,67.95],[25.37,68.31]],
+indusSea: [[25.37,68.31],[24.95,68.10],[24.60,67.75],[24.15,67.42]],
+jhelumUp: [[33.55,73.85],[33.14,73.64],[32.68,73.52]],
+jhelumLow:[[32.68,73.52],[32.45,73.00],[32.25,72.50],[31.75,72.30],[31.15,72.15]],
+chenabUp: [[32.86,74.78],[32.67,74.46],[32.40,73.97],[32.32,73.69]],
+chenabMid:[[32.32,73.69],[31.95,73.20],[31.72,72.98],[31.40,72.50],[31.15,72.15]],
+chenabLow:[[31.15,72.15],[30.65,71.85],[30.15,71.40],[29.70,71.15],[29.35,71.03],[28.95,70.37]],
+raviUp:   [[32.30,75.12],[32.08,74.95],[31.62,74.28],[31.40,74.05],[31.22,73.86]],
+raviLow:  [[31.22,73.86],[30.95,73.30],[30.75,72.70],[30.57,72.10],[30.65,71.85]],
+sutlejUp: [[31.12,74.95],[30.98,74.55],[30.70,74.20],[30.38,73.87]],
+sutlejLow:[[30.38,73.87],[30.10,73.25],[29.82,72.55],[29.60,72.10],[29.42,71.70],[29.35,71.03]],
+};
+const LINKS = {
+rq: [[32.68,73.52],[32.50,73.62],[32.32,73.69]],
+qb: [[32.32,73.69],[31.85,73.76],[31.50,73.86],[31.22,73.86]],
+bs: [[31.22,73.86],[30.85,73.92],[30.38,73.87]],
+};
+const CANAL = {
+main:  [[30.38,73.87],[30.05,73.55],[29.70,73.22],[29.45,73.02],[29.19,72.85]],
+marot: [[29.45,73.02],[29.33,72.72],[29.20,72.45]],
+};
+const COMMAND = [[29.62,73.08],[29.42,72.70],[29.26,72.30],[29.08,72.38],[29.04,72.82],[29.20,73.02],[29.40,73.18]];
+const DESERT = [[29.80,73.12],[29.30,72.30],[29.02,71.45],[28.60,70.70],[28.05,70.05],[27.70,70.20],[28.10,71.20],[28.45,72.15],[28.90,72.75],[29.25,73.05],[29.65,73.28]];
+const BORDER = [[31.75,74.58],[31.10,74.58],[30.98,74.60],[30.62,74.18],[30.37,73.93],[30.05,73.50],[29.65,73.28],[29.25,73.05],[28.90,72.75],[28.45,72.15],[28.10,71.20],[27.85,70.60],[27.50,70.05],[26.90,69.95],[26.40,70.10],[25.75,70.25],[25.20,70.60],[24.70,71.05],[24.30,71.05],[24.05,70.10],[23.90,69.20]];
+const COAST = [[25.40,66.90],[25.05,66.95],[24.86,67.00],[24.75,67.20],[24.40,67.30],[24.15,67.42],[24.00,67.80],[23.90,68.30],[23.75,68.70],[23.60,69.20]];
+const NODES = [
+{id:'Tarbela',ll:[34.09,72.69],k:'dam'},{id:'Mangla',ll:[33.14,73.64],k:'dam'},
+{id:'Rasul',ll:[32.68,73.52]},{id:'Marala',ll:[32.67,74.46]},{id:'Khanki',ll:[32.40,73.97],minor:1},{id:'Qadirabad',ll:[32.32,73.69]},
+{id:'Trimmu',ll:[31.15,72.15]},{id:'Balloki',ll:[31.22,73.86]},{id:'Sidhnai',ll:[30.57,72.10],minor:1},
+{id:'Sulemanki',ll:[30.38,73.87],key:1},{id:'Islam',ll:[29.82,72.55],minor:1},{id:'Panjnad',ll:[29.35,71.03]},
+{id:'Kalabagh',ll:[32.96,71.55],minor:1},{id:'Chashma',ll:[32.43,71.38]},{id:'Taunsa',ll:[30.70,70.65]},
+{id:'Guddu',ll:[28.42,69.71]},{id:'Sukkur',ll:[27.68,68.85]},{id:'Kotri',ll:[25.37,68.31],key:1},
+];
+const TOWNS = [['Lahore',31.55,74.34],['Multan',30.20,71.47],['Bahawalpur',29.40,71.68],['Bahawalnagar',29.99,73.25],['Fort Abbas',29.19,72.85],['Derawar Fort',28.77,71.33],['Karachi',24.86,67.01],['Hyderabad',25.40,68.42]];
+const RIVERNAMES = [['INDUS',31.35,70.45,-1.25],['JHELUM',32.42,72.72,-0.55],['CHENAB',31.55,72.70,-0.85],['RAVI',30.90,73.15,-0.55],['SUTLEJ',30.05,72.95,-0.45],['INDUS',26.9,67.70,-1.3]];
+
+
+CANAL.derawar = [[29.70,73.22],[29.35,72.40],[29.05,71.80],[28.82,71.40]];
+CANAL.other = [[29.45,73.02],[29.10,73.00]];
+
+// ---------- gauge days used in the paper (FFC river sheets, cusecs) ----------
+const DAYS = {
+feb:{label:'20 Feb 2025', tag:'Winter low flow', sul:0, sulIn:6000, kot:0},
+apr:{label:'22 Apr 2025', tag:'Early Kharif', sul:4000, sulIn:12000, kot:0},
+sep:{label:'9 Sep 2025', tag:'Monsoon flood', sul:137521, sulIn:137521, kot:231763},
+};
+const KMIN=5000, LINKCAP=5000, DESIGN=4120, MAROT=1300;
+const S = {day:'feb', outtake:4120, running:true};
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const m3=n=>(n*0.0283168).toLocaleString('en-US',{maximumFractionDigits:n*0.0283>100?0:1});
+function calc(){
+const d=DAYS[S.day], mon=S.day==='sep';
+const physical=Math.min(DESIGN, d.sul+LINKCAP);
+const draw=Math.min(S.outtake, physical);
+const surplus=Math.max(0,d.kot-KMIN);
+const deficit=Math.max(0,draw-surplus);
+const viaLink=Math.max(0,draw-d.sul);
+const kotAfter=Math.max(0,d.kot-draw);
+const ratio=draw/DESIGN;
+const status = draw<1?'warn':(deficit>0?'bad':'ok');
+return {d,mon,inflow:d.kot,link:d.sul,draw,surplus,deficit,viaLink,kotAfter,ratio,status,
+green:Math.round(ratio*100), marot:draw*MAROT/DESIGN, dera:draw*(DESIGN-MAROT)/DESIGN, other:0};
+}
+let C=calc();
+function update(){
+C=calc();
+$('mIn').innerHTML=(C.inflow<1?'NIL':fmt(C.inflow))+'<small>cusecs</small>';
+$('mLink').innerHTML=(C.link<1?'NIL':fmt(C.link))+'<small>cusecs</small>';
+$('mOut').innerHTML=fmt(C.draw)+'<small>cusecs · '+m3(C.draw)+' m³/s</small>';
+$('mDef').innerHTML=fmt(C.deficit)+'<small>cusecs</small>';
+$('defCard').classList.toggle('alert',C.deficit>0);
+$('barIn').style.width=Math.min(100,Math.log10(1+C.inflow)/Math.log10(250000)*100)+'%';
+$('barLink').style.width=Math.min(100,Math.log10(1+C.link)/Math.log10(250000)*100)+'%';
+$('barOut').style.width=(C.draw/5000*100)+'%';
+$('barDef').style.width=Math.min(100,C.deficit/DESIGN*100)+'%';
+$('outVal').textContent=fmt(S.outtake);
+[['bMarot','vMarot',C.marot],['bDera','vDera',C.dera]].forEach(([b,v,x])=>{ $(b).style.width=(x/DESIGN*100)+'%'; $(v).textContent=fmt(x)+' cs'; });
+const st=$('status'); st.className='status '+C.status;
+const pct=C.d.sul>0?(C.draw/C.d.sul*100):0;
+const T={
+ok:['Flood surplus','The canal could run without harming anyone',`On ${C.d.label}, ${fmt(C.d.sul)} cusecs passed Sulemanki and ${fmt(C.d.kot)} cusecs went to sea below Kotri. Drawing ${fmt(C.draw)} cusecs takes only flood surplus, about ${pct.toFixed(0)}% of the Sutlej that day. The canal can use flood water, but it is too small to control a flood.`],
+bad:['Takes others’ water','Every cusec comes out of Sindh and the delta',`On ${C.d.label} nothing flowed to the sea below Kotri${C.d.sul<1?' and nothing passed Sulemanki':''}. Drawing ${fmt(C.draw)} cusecs${C.viaLink>0?', '+fmt(C.viaLink)+' of it pulled through the link canals,':''} would cut ${fmt(C.deficit)} cusecs from the supplies of downstream provinces and the delta minimum. Under the IRSA certificate the canal gets ${S.day==='feb'?'nothing at all from October to March':'only a trickle in April and May'}.`],
+warn:['Canal closed','No draw set','Move the slider to set how much the canal takes at Sulemanki.']}[C.status];
+$('badge').textContent=T[0]; $('stHead').textContent=T[1]; $('stText').textContent=T[2];
+$('hudGreen').textContent=C.green+'% of design flow'; $('hudGreen').style.color=C.deficit>0?'var(--bad)':(C.green>50?'var(--ok)':'var(--ink)');
+$('hudAlert').textContent= C.deficit>0?'Short downstream: '+fmt(C.deficit)+' cs':(C.mon?'None (flood surplus)':'None');
+$('hudAlert').style.color= C.deficit>0?'var(--bad)':'var(--ok)';
+$('tagTop').textContent='Measured day (FFC)';
+$('tagBig').textContent=C.d.label;
+$('tagSub').textContent=C.d.tag+' · Kotri '+(C.d.kot<1?'NIL':fmt(C.d.kot)+' cs');
+document.querySelector('.seasonTag').style.borderLeftColor=C.mon?'var(--water)':'var(--warn)';
+document.querySelectorAll('[data-day]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.day===S.day));
+$('ribLab').textContent=C.d.label+' · draw '+fmt(C.draw)+' cs';
+drawRibbon();
+}
+
+// ---------- route ribbon (SVG schematic) ----------
+function drawRibbon(){
+const svg=$('rib'); const w=v=> v<=0?0:Math.max(2, 2+ Math.log10(1+v/300)*5);
+const linkQ=C.viaLink, short=C.deficit;
+const nodes=[['Rasul',60],['Qadirabad',230],['Balloki',400],['Sulemanki',570]];
+let h='';
+h+=`<defs><linearGradient id="gc" x1="0" x2="1"><stop offset="0" stop-color="var(--water)"/><stop offset="1" stop-color="var(--canal)"/></linearGradient></defs>`;
+// links
+[['RQ link',60,230],['QB link',230,400],['BS link',400,570]].forEach(([n,a,b])=>{
+h+=`<line x1="${a}" y1="60" x2="${b}" y2="60" stroke="var(--water)" stroke-width="${Math.max(1.5,w(linkQ))}" stroke-linecap="round" opacity=".9"/>`;
+h+=`<line class="flow" x1="${a}" y1="60" x2="${b}" y2="60" stroke="var(--ink)" stroke-opacity=".55" stroke-width="${Math.max(1,w(linkQ)*.35)}" stroke-dasharray="3 12"/>`;
+h+=`<text x="${(a+b)/2}" y="40" text-anchor="middle" fill="var(--ink2)" font-family="var(--f-mono)" font-size="11">${n.split(' ')[0]} ${linkQ>0?'+'+fmt(linkQ)+' cs':'idle'}</text>`;
+});
+// canal + branches
+const br=[['Marot',C.marot,40],['Main line',C.dera,110]];
+h+=`<path d="M570 60 C 640 60, 650 75, 700 75" fill="none" stroke="url(#gc)" stroke-width="${w(C.draw)}" stroke-linecap="round"/>`;
+br.forEach(([n,q,y])=>{
+h+=`<path d="M700 75 C 760 75, 770 ${y}, 830 ${y}" fill="none" stroke="var(--canal)" stroke-width="${w(q)}" stroke-linecap="round" opacity="${q>0?1:.25}"/>`;
+h+=`<path class="flow" d="M700 75 C 760 75, 770 ${y}, 830 ${y}" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="${Math.max(1,w(q)*.35)}" stroke-dasharray="3 12"/>`;
+h+=`<text x="840" y="${y+4}" fill="var(--ink)" font-family="var(--f-mono)" font-size="12">${n} <tspan fill="var(--canal)">${fmt(q)}</tspan></text>`;
+});
+h+=`<text x="635" y="52" text-anchor="middle" fill="var(--canal)" font-family="var(--f-mono)" font-size="11">Cholistan ${fmt(C.draw)} cs</text>`;
+// downstream
+const dsCol= short>0?'var(--bad)':'var(--water)';
+h+=`<path d="M570 60 C 570 110, 520 130, 430 130 L 300 130" fill="none" stroke="${dsCol}" stroke-width="${short>0?2.5:w(C.kotAfter)}" stroke-linecap="round" ${short>0?'stroke-dasharray="5 5"':''}/>`;
+h+=`<text x="300" y="118" fill="${dsCol}" font-family="var(--f-mono)" font-size="11">Below Kotri ${short>0?'· short '+fmt(short)+' cs':'· '+fmt(C.kotAfter)+' cs to sea'}</text>`;
+nodes.forEach(([n,x])=>{ h+=`<circle cx="${x}" cy="60" r="7" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/><text x="${x}" y="88" text-anchor="middle" fill="var(--ink)" font-family="var(--f-display)" font-weight="600" font-size="13">${n}</text>`; });
+svg.innerHTML=h;
+}
+let dashOff=0;
+
+// ---------- map ----------
+const map=$('map'), g=map.getContext('2d'), stat=document.createElement('canvas'), sg=stat.getContext('2d');
+const M={w:0,h:0,k:1,ox:0,dpr:1,paths:{}};
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function P(ll){ return [(ll[1]-B.lon0)*COSL*M.k+M.ox, (B.lat1-ll[0])*M.k]; }
+function smooth(c,pts){ c.beginPath(); c.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length-1;i++){ const xc=(pts[i][0]+pts[i+1][0])/2, yc=(pts[i][1]+pts[i+1][1])/2; c.quadraticCurveTo(pts[i][0],pts[i][1],xc,yc);} const l=pts[pts.length-1]; c.lineTo(l[0],l[1]); }
+const sc=()=>Math.max(.8,Math.min(1.25,M.w/560));
+function size(){
+const w=map.parentElement.clientWidth, ratio=(B.lat1-B.lat0)/((B.lon1-B.lon0)*COSL);
+const h=Math.round(Math.min(w*ratio, Math.max(560, window.innerHeight*1.05)));
+M.dpr=window.devicePixelRatio||1; M.w=w; M.h=h; M.k=Math.min(w/((B.lon1-B.lon0)*COSL), h/(B.lat1-B.lat0)); M.ox=(w-(B.lon1-B.lon0)*COSL*M.k)/2;
+map.style.height=h+'px'; map.width=Math.round(w*M.dpr); map.height=Math.round(h*M.dpr); stat.width=map.width; stat.height=map.height;
+const all={...RIV, l_rq:LINKS.rq, l_qb:LINKS.qb, l_bs:LINKS.bs, c_main:CANAL.main, c_marot:CANAL.marot};
+M.paths={}; for(const k in all) M.paths[k]=all[k].map(P);
+drawStatic();
+}
+function drawStatic(){
+const c=sg; c.setTransform(M.dpr,0,0,M.dpr,0,0); const {w,h}=M;
+const grd=c.createLinearGradient(0,0,0,h); grd.addColorStop(0,'#0E1C2C'); grd.addColorStop(1,'#0A1522'); c.fillStyle=grd; c.fillRect(0,0,w,h);
+c.strokeStyle=css('--grid'); c.lineWidth=1; c.font='10px '+css('--f-mono'); c.fillStyle=css('--ink3');
+for(let lat=24;lat<=34;lat++){ const a=P([lat,B.lon0]),b=P([lat,B.lon1]); c.beginPath(); c.moveTo(a[0],a[1]); c.lineTo(b[0],b[1]); c.stroke(); if(lat%2===0){c.textAlign='left';c.fillText(lat+'°N',a[0]+4,a[1]-3);} }
+for(let lon=67;lon<=75;lon++){ const a=P([B.lat0,lon]),b=P([B.lat1,lon]); c.beginPath(); c.moveTo(a[0],a[1]); c.lineTo(b[0],b[1]); c.stroke(); if(lon%2===1){c.textAlign='center';c.fillText(lon+'°E',a[0],h-4);} }
+const co=COAST.map(P); c.fillStyle=css('--sea'); c.beginPath(); c.moveTo(0,co[0][1]); co.forEach(p=>c.lineTo(p[0],p[1])); c.lineTo(co[co.length-1][0],h); c.lineTo(0,h); c.closePath(); c.fill();
+c.fillStyle=css('--ink3'); c.font='italic 12px '+css('--f-body'); c.textAlign='left'; const sp=P([24.2,67.0]); c.fillText('Arabian Sea',sp[0],sp[1]+18);
+const d=DESERT.map(P); c.fillStyle=css('--sand'); smooth(c,[...d,d[0]]); c.closePath(); c.fill();
+c.save(); smooth(c,[...d,d[0]]); c.closePath(); c.clip(); c.fillStyle=css('--sandink'); c.globalAlpha=.35; let s=11; const r=()=>{s=(s*16807)%2147483647; return s/2147483647;}; for(let i=0;i<1100;i++) c.fillRect(r()*w,r()*h,1.1,1.1); c.restore(); c.globalAlpha=1;
+c.fillStyle=css('--sandink'); c.font='600 '+Math.round(13*sc())+'px '+css('--f-display'); c.textAlign='center'; c.save(); const cp=P([28.45,70.95]); c.translate(cp[0],cp[1]); c.rotate(.55); c.fillText('C H O L I S T A N',0,0); c.restore();
+c.strokeStyle=css('--ink3'); c.setLineDash([2,4]); c.beginPath(); BORDER.map(P).forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.stroke(); c.setLineDash([]);
+c.fillStyle=css('--ink3'); c.font='600 '+Math.round(11*sc())+'px '+css('--f-mono'); c.textAlign='left';
+[['INDIA',27.55,71.6],['PUNJAB',32.0,70.2],['SINDH',26.3,68.6]].forEach(t=>{const p=P([t[1],t[2]]); c.fillText(t[0],p[0],p[1]);});
+c.font='11px '+css('--f-body'); c.fillStyle=css('--ink2');
+TOWNS.forEach(t=>{ const p=P([t[1],t[2]]); c.beginPath(); c.arc(p[0],p[1],2,0,7); c.fill(); const rt=t[0]==='Fort Abbas'; c.textAlign=rt?'right':'left'; c.fillText(t[0],p[0]+(rt?-5:5),p[1]+(t[0]==='Hyderabad'?-6:4)); });
+c.fillStyle=css('--water'); c.globalAlpha=.7; c.font='italic 600 '+Math.round(11*sc())+'px '+css('--f-body');
+RIVERNAMES.forEach(t=>{ const p=P([t[1],t[2]]); c.save(); c.translate(p[0],p[1]); c.rotate(t[3]); c.textAlign='center'; c.fillText(t[0],0,0); c.restore(); }); c.globalAlpha=1;
+const kmpx=M.k/111, sx=w-20-100*kmpx, sy=h-26; c.strokeStyle=css('--ink2'); c.lineWidth=2; c.beginPath(); c.moveTo(sx,sy); c.lineTo(sx+100*kmpx,sy); c.stroke(); c.font='10px '+css('--f-mono'); c.fillStyle=css('--ink2'); c.textAlign='center'; c.fillText('100 km',sx+50*kmpx,sy-8);
+}
+// seasonal visual weight per reach (visual only; no figures)
+function widths(){
+const mon=C.mon, f=mon?1:0.35;
+const W={};
+['indusUp','indusMid','jhelumUp','jhelumLow','chenabUp','chenabMid','chenabLow','raviUp','raviLow'].forEach(k=>W[k]=(mon?6:3)*f+1.2);
+W.sutlejUp = C.d.sulIn>0?(mon?5:1.6):0; W.sutlejLow = C.d.sul>0?(mon?4.5:1.4):0;
+W.link = 1.4 + 4*Math.log10(1+C.viaLink/500)/Math.log10(11);
+W.canal = C.draw<=0?0:1.6+3.6*(C.draw/5000);
+W.indusSea = C.kotAfter<1? 0 : (mon?7:3);
+for(const k in W) W[k]*=sc();
+return W;
+}
+const cur={};
+let phase=0,last=performance.now();
+const drops=[...Array(160)].map((_,i)=>({x:Math.random(),y:Math.random(),v:.6+Math.random()*.8}));
+function stroke(pts,wd,col,dash,alpha){ if(wd<=0) return; g.lineCap='round'; g.lineJoin='round'; g.globalAlpha=alpha??1; g.strokeStyle=col; g.lineWidth=wd; smooth(g,pts); g.stroke();
+if(dash && !reduceMotion && S.running){ g.strokeStyle='rgba(235,245,255,.75)'; g.lineWidth=Math.max(1,wd*.4); g.setLineDash([Math.max(2,wd*.9),12*sc()]); g.lineDashOffset=-phase*dash; smooth(g,pts); g.stroke(); g.setLineDash([]); }
+else if(dash){ g.strokeStyle='rgba(235,245,255,.5)'; g.lineWidth=Math.max(1,wd*.4); g.setLineDash([Math.max(2,wd*.9),12*sc()]); smooth(g,pts); g.stroke(); g.setLineDash([]); }
+g.globalAlpha=1; }
+function dry(pts){ g.strokeStyle=css('--dry'); g.lineWidth=1.4*sc(); g.setLineDash([3,4]); smooth(g,pts); g.stroke(); g.setLineDash([]); }
+function glow(pts,wd,col){ g.save(); g.shadowColor=col; g.shadowBlur=14*sc(); g.strokeStyle=col; g.globalAlpha=.55; g.lineWidth=wd; g.lineCap='round'; smooth(g,pts); g.stroke(); g.restore(); }
+function frame(now){
+const dt=Math.min(.05,(now-last)/1000); last=now; if(S.running && !reduceMotion) phase+=dt;
+if(M.w) render(dt);
+requestAnimationFrame(frame);
+}
+function render(dt){
+g.setTransform(M.dpr,0,0,M.dpr,0,0); g.drawImage(stat,0,0,M.w,M.h);
+const T=widths(), t=Math.min(1,dt*5); for(const k in T) cur[k]=(cur[k]??T[k])+(T[k]-(cur[k]??T[k]))*t;
+const water=css('--water'), canal=css('--canal'), bad=css('--bad'), ok=css('--ok');
+// greening command area
+const cm=COMMAND.map(P); const gr=Math.min(1.2,C.draw/4120);
+g.fillStyle=ok; g.globalAlpha=gr>0.1?Math.min(.6,gr*.5):0.05; smooth(g,[...cm,cm[0]]); g.closePath(); g.fill(); g.globalAlpha=1;
+g.strokeStyle=ok; g.setLineDash([4,3]); g.lineWidth=1; smooth(g,[...cm,cm[0]]); g.closePath(); g.stroke(); g.setLineDash([]);
+// lower Indus deficit zone
+if(C.deficit>0){ const a=P([27.0,69.6]); g.save(); const rad=g.createRadialGradient(a[0],a[1],4,a[0],a[1],150*sc()); rad.addColorStop(0,'rgba(255,107,94,.35)'); rad.addColorStop(1,'rgba(255,107,94,0)'); g.fillStyle=rad; g.fillRect(a[0]-160*sc(),a[1]-160*sc(),320*sc(),320*sc()); g.restore(); }
+// rivers
+const spd=26*sc()*(C.mon?1.5:0.8);
+['indusUp','indusMid','jhelumUp','jhelumLow','chenabUp','chenabMid','chenabLow','raviUp','raviLow','sutlejUp'].forEach(k=>stroke(M.paths[k],cur[k],water,spd,.95));
+if(cur.sutlejLow>0.3) stroke(M.paths.sutlejLow,cur.sutlejLow,water,spd,.95); else dry(M.paths.sutlejLow);
+if(cur.sutlejUp<0.3) dry(M.paths.sutlejUp);
+if(cur.indusSea>0.3) stroke(M.paths.indusSea,cur.indusSea,water,spd,1); else dry(M.paths.indusSea);
+if(C.deficit>0) stroke(M.paths.indusMid,1.8*sc(),bad,spd*.4,.9);
+// links
+['l_rq','l_qb','l_bs'].forEach(k=>{ if(C.viaLink>0) glow(M.paths[k],cur.link,water); stroke(M.paths[k],cur.link,C.viaLink>0?'#9CD2FF':'#4D6A88',C.viaLink>0?spd:0,1); });
+// canal + branches
+if(cur.canal>0.3){ ['c_main','c_marot'].forEach((k,i)=>{ const wd=i?cur.canal*.7:cur.canal; glow(M.paths[k],wd,canal); stroke(M.paths[k],wd,canal,spd,1); }); }
+else ['c_main','c_marot'].forEach(k=>dry(M.paths[k]));
+// rain / dust
+if(!reduceMotion){
+g.save(); g.lineWidth=1;
+if(C.mon){ g.strokeStyle='rgba(158,205,255,.22)'; drops.forEach(d=>{ if(S.running){ d.y+=dt*d.v*.5; d.x+=dt*d.v*.08; if(d.y>1){d.y=0; d.x=Math.random();} if(d.x>1) d.x-=1; } const x=d.x*M.w, y=d.y*M.h; g.beginPath(); g.moveTo(x,y); g.lineTo(x+3*sc(),y+12*sc()); g.stroke(); }); }
+else { g.fillStyle='rgba(201,161,92,.35)'; const dc=P([28.6,71.2]); drops.slice(0,70).forEach((d,i)=>{ if(S.running){ d.x+=dt*d.v*.03; if(d.x>1) d.x-=1; } const x=dc[0]+(d.x-.5)*260*sc(), y=dc[1]+(d.y-.5)*110*sc()+Math.sin(phase*2+i)*3; g.fillRect(x,y,1.5,1.5); }); }
+g.restore();
+}
+// nodes
+NODES.forEach(n=>{ const p=P(n.ll), r=(n.key?5.5:(n.minor?2.6:3.6))*sc();
+if(n.key){ g.save(); g.shadowColor=n.id==='Kotri'&&C.deficit>0?bad:canal; g.shadowBlur=12; }
+g.fillStyle=n.key?(n.id==='Kotri'&&C.deficit>0?bad:canal):css('--panel'); g.strokeStyle=css('--ink'); g.lineWidth=1.4; g.beginPath();
+if(n.k==='dam') g.rect(p[0]-r,p[1]-r,2*r,2*r); else g.arc(p[0],p[1],r,0,7); g.fill(); g.stroke(); if(n.key) g.restore();
+if(!n.minor || M.w>620){ g.fillStyle=css('--ink'); g.font=(n.key?'700 ':'600 ')+Math.round((n.key?12.5:11)*sc())+'px '+css('--f-body'); g.textAlign='left'; g.textBaseline='middle';
+const off={Sulemanki:[9,-10],Rasul:[-48,10],Qadirabad:[-62,10],Balloki:[9,-6],Trimmu:[-46,-8],Panjnad:[-52,10],Marala:[8,-8],Islam:[6,9],Khanki:[6,-8],Sidhnai:[-44,10]}[n.id]||[8,0];
+g.fillText(n.id,p[0]+off[0],p[1]+off[1]); } });
+// callouts
+callout(P([30.38,73.87]),[14,24],['SULEMANKI','Sutlej '+(C.link<1?'NIL':fmt(C.link)+' cs'),'Canal draws '+fmt(C.draw)+' cs'],canal);
+callout(P([31.85,73.76]),[-175*sc(),-34],['LINK CANALS','RQ · QB · BS',C.viaLink>0?'+'+fmt(C.viaLink)+' cs to Cholistan':'No transfer needed'],water);
+callout(P([29.10,72.55]),[24*sc(),58*sc()],['PHASE I COMMAND','182,900 ha (452,000 ac)','Marot '+fmt(C.marot)+' cs','Main line '+fmt(C.dera)+' cs'],ok);
+callout(P([25.37,68.31]),[16,24],['BELOW KOTRI', (C.d.kot<1?'NIL':fmt(C.d.kot))+' → '+(C.kotAfter<1?'NIL':fmt(C.kotAfter))+' cs', C.deficit>0?'Sindh & delta short '+fmt(C.deficit)+' cs':'Delta minimum kept'], C.deficit>0?bad:water);
+}
+function callout(p,off,lines,col){
+const s=sc(), lh=15*s; let wm=0; lines.forEach((l,i)=>{ g.font=(i?'500 ':'600 ')+Math.round((i?11.5:10)*s)+'px '+css('--f-mono'); wm=Math.max(wm,g.measureText(l).width); });
+const bw=wm+16, bh=lines.length*lh+8; const bx=Math.max(4,Math.min(M.w-bw-4,p[0]+off[0])), by=Math.max(4,Math.min(M.h-bh-4,p[1]+off[1]));
+g.strokeStyle=col; g.lineWidth=1; g.beginPath(); g.moveTo(p[0],p[1]); g.lineTo(bx+(bx>p[0]?0:bw),by+bh/2); g.stroke();
+g.fillStyle='rgba(8,16,25,.9)'; g.fillRect(bx,by,bw,bh); g.strokeRect(bx+.5,by+.5,bw-1,bh-1); g.fillStyle=col; g.fillRect(bx,by,3,bh);
+lines.forEach((l,i)=>{ g.fillStyle=i?css('--ink'):col; g.font=(i?'500 ':'600 ')+Math.round((i?11.5:10)*s)+'px '+css('--f-mono'); g.textAlign='left'; g.textBaseline='middle'; g.fillText(l,bx+9,by+4+lh*(i+.5)); });
+}
+
+// ---------- controls ----------
+document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{S.day=b.dataset.day; update();});
+$('btnPause').onclick=()=>{S.running=!S.running; $('btnPause').textContent=S.running?'Pause flow':'Resume flow'; document.querySelectorAll('#rib .flow').forEach(e=>e.style.animationPlayState=S.running?'running':'paused');};
+$('out').oninput=e=>{S.outtake=+e.target.value; update();};
+window.addEventListener('resize',()=>{clearTimeout(window._r); window._r=setTimeout(size,120);});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>drawStatic());
+// ribbon dash animation
+(function anim(){ if(S.running && !reduceMotion){ dashOff-=0.6; document.querySelectorAll('#rib .flow').forEach(e=>e.setAttribute('stroke-dashoffset',dashOff)); } requestAnimationFrame(anim); })();
+size(); update(); requestAnimationFrame(frame);
+</script>
+
+</body></html>

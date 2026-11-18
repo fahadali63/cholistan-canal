@@ -1,0 +1,946 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cholistan Canal Simulator · Concrete before water</title>
+<meta name="description" content="Ten-daily water balance model of the Cholistan Canal, Phase I. Companion to the paper 'Concrete before water'.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: survey-sheet map on the left, gauge readouts on the right, hydrograph strip and year ledger below. */
+:root{
+--paper:#ECEFE9; --panel:#F8F9F5; --panel2:#E2E7E0; --ink:#16252A; --ink2:#4B5C60; --ink3:#7A8A8C; --line:#C6CEC6;
+--water:#1B66A8; --water2:#7FB3DD; --canal:#0A8A86; --canal2:#7BD3CD; --sand:#DCC8A0; --sandink:#8E6D33; --sea:#CFDDE6;
+--ok:#2F8A4A; --okbg:#DCEFDD; --warn:#B77A08; --warnbg:#F6E9C9; --bad:#B23A2C; --badbg:#F6DAD5; --pj:#6A4FA3;
+--grid:rgba(22,37,42,.07); --dry:#B9A27A;
+--f-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+--f-body:'Source Sans 3','Segoe UI',system-ui,sans-serif;
+--f-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+--paper:#0D1518; --panel:#132024; --panel2:#1A2A2F; --ink:#E1EBE9; --ink2:#9FB2B3; --ink3:#6E8284; --line:#29393E;
+--water:#4C9FE6; --water2:#24557F; --canal:#26C2BB; --canal2:#155E5B; --sand:#4A3E28; --sandink:#CDAA66; --sea:#12283A;
+--ok:#5CBF71; --okbg:#173322; --warn:#E3A72E; --warnbg:#3A2E12; --bad:#EC6A58; --badbg:#3D1E1A; --pj:#A68BE6;
+--grid:rgba(225,235,233,.06); --dry:#7D6B4B; color-scheme:dark }}
+:root[data-theme="dark"]{
+--paper:#0D1518; --panel:#132024; --panel2:#1A2A2F; --ink:#E1EBE9; --ink2:#9FB2B3; --ink3:#6E8284; --line:#29393E;
+--water:#4C9FE6; --water2:#24557F; --canal:#26C2BB; --canal2:#155E5B; --sand:#4A3E28; --sandink:#CDAA66; --sea:#12283A;
+--ok:#5CBF71; --okbg:#173322; --warn:#E3A72E; --warnbg:#3A2E12; --bad:#EC6A58; --badbg:#3D1E1A; --pj:#A68BE6;
+--grid:rgba(225,235,233,.06); --dry:#7D6B4B; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.05}
+h1{font-size:clamp(34px,5vw,54px);text-transform:uppercase}
+h2{font-size:24px;text-transform:uppercase}
+h3{font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+a{color:var(--water)}
+p{margin:0}
+
+.mast{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 28px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:14px}
+.mast .lede{max-width:68ch;color:var(--ink2);margin-top:8px}
+.spec{display:grid;grid-template-columns:repeat(3,auto);gap:2px 18px;font-family:var(--f-mono);font-size:12px;color:var(--ink2);text-align:right}
+.spec b{display:block;font-family:var(--f-display);font-size:26px;color:var(--ink);font-weight:600;line-height:1}
+.status{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 10px;border-radius:3px;border:1px solid var(--line);background:var(--panel);color:var(--ink2)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--warn)}
+
+.controls{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px 18px;background:var(--panel);border:1px solid var(--line);padding:14px 16px}
+.ctl{display:grid;gap:6px;min-width:0}
+.ctl>label,.ctl>.lab{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.c-mode{grid-column:span 3}.c-when{grid-column:span 9}.c-rule{grid-column:span 6}.c-crop{grid-column:span 3}.c-area{grid-column:span 3}.c-adv{grid-column:1/-1}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button,.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:5px 10px;border-radius:3px;cursor:pointer;line-height:1.3}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg button:hover{border-color:var(--ink2)}
+.seg.years button{font-family:var(--f-mono);font-size:12.5px;padding:4px 8px}
+.seg.years button .flag{display:block;font-size:9.5px;letter-spacing:.06em;color:inherit;opacity:.7;text-transform:uppercase}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--canal);outline-offset:2px}
+select{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:3px;width:100%}
+.rulehelp{font-size:13px;color:var(--ink2);min-height:2.6em}
+input[type=range]{width:100%;accent-color:var(--canal)}
+.rangeval{font-family:var(--f-mono);font-size:13px}
+details.adv summary{cursor:pointer;font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.advgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 18px;margin-top:12px}
+.advgrid .ctl label{text-transform:none;letter-spacing:0;font-family:var(--f-body);font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;gap:8px}
+
+.stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+.mapcard{position:relative;background:var(--panel);border:1px solid var(--line);min-width:0}
+.mapcard canvas{display:block;width:100%}
+.mapbadge{position:absolute;top:10px;left:10px;background:var(--panel);border:1px solid var(--ink);padding:6px 10px;display:grid;gap:1px;pointer-events:none}
+.mapbadge .big{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1;text-transform:uppercase}
+.mapbadge .small{font-family:var(--f-mono);font-size:11px;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:4px;border-radius:2px;display:inline-block}
+.sw.dash{background:repeating-linear-gradient(90deg,var(--dry) 0 4px,transparent 4px 8px)}
+.sw.box{height:10px;width:14px;border-radius:2px}
+
+.side{display:grid;gap:14px;min-width:0}
+.verdict{border:1px solid var(--line);border-left:6px solid var(--ink3);background:var(--panel);padding:14px 16px;display:grid;gap:8px}
+.verdict.ok{border-left-color:var(--ok)}.verdict.partial{border-left-color:var(--warn)}.verdict.fail,.verdict.harm{border-left-color:var(--bad)}
+.pill{justify-self:start;font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:600}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.partial{background:var(--warnbg);color:var(--warn)}.pill.fail,.pill.harm{background:var(--badbg);color:var(--bad)}
+.verdict h2{font-size:26px;text-transform:none;letter-spacing:0}
+.verdict p{color:var(--ink2);font-size:14.5px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.stat{background:var(--panel);padding:10px 12px;display:grid;gap:2px;align-content:start;min-width:0}
+.stat .k{font-size:12px;color:var(--ink2);line-height:1.25}
+.stat .v{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.05}
+.stat .v small{font-family:var(--f-mono);font-size:12px;font-weight:400;color:var(--ink2);margin-left:3px}
+.stat .s{font-size:11.5px;color:var(--ink3);font-family:var(--f-mono)}
+.now{background:var(--panel);border:1px solid var(--line);padding:12px 14px;display:grid;gap:10px}
+.now .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.reads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+.read{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--line);padding-bottom:4px;font-size:13.5px}
+.read span:first-child{color:var(--ink2)}
+.read span:last-child{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.split{display:flex;height:16px;border:1px solid var(--line);background:var(--paper)}
+.split div{height:100%;transition:width .35s}
+.splitkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2)}
+.splitkey span{display:inline-flex;gap:5px;align-items:center}
+.note{font-size:13px;color:var(--ink2)}
+
+.timeline{background:var(--panel);border:1px solid var(--line);padding:14px 16px;display:grid;gap:10px;min-width:0}
+.tlhead{display:flex;gap:12px 18px;align-items:center;flex-wrap:wrap}
+.tlhead .grow{flex:1 1 220px;min-width:0}
+.btn.play{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600;min-width:88px}
+.chartbox{position:relative;min-width:0}
+.chartbox canvas{display:block;width:100%;cursor:crosshair;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--ink);padding:6px 8px;font-size:12px;font-family:var(--f-mono);white-space:nowrap;z-index:3}
+
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:13.5px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:500;vertical-align:bottom}
+td:first-child,th:first-child{text-align:left}
+td.mono{font-family:var(--f-mono)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel2)}
+tbody tr.sel{background:var(--panel2);box-shadow:inset 3px 0 0 var(--canal)}
+.bar{display:inline-block;height:8px;background:var(--canal);vertical-align:middle;margin-right:6px;border-radius:1px}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.sec-head p{color:var(--ink2);max-width:72ch;font-size:14px}
+
+.method{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.method>div{background:var(--panel);border:1px solid var(--line);padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.method ol,.method ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.method li b{color:var(--ink)}
+.formula{font-family:var(--f-mono);font-size:12px;background:var(--paper);border:1px solid var(--line);padding:8px 10px;overflow-x:auto;white-space:pre;color:var(--ink)}
+.src li{word-break:break-word}
+
+.paper{display:grid;gap:12px}
+.pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.pnum{background:var(--panel);padding:12px 14px;display:grid;gap:4px;align-content:start}
+.pnum b{font-family:var(--f-display);font-size:34px;line-height:1}
+.pnum span{font-size:13px;color:var(--ink2)}
+.gaps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gap{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--bad);padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
+.gap.s2{border-left-color:var(--warn)}
+.gap i{font-style:normal;font-family:var(--f-display);font-size:26px;font-weight:700;grid-row:span 2;color:var(--bad)}
+.gap.s2 i{color:var(--warn)}
+.gap b{font-family:var(--f-display);text-transform:uppercase;font-size:16px;letter-spacing:.03em}
+.gap span{font-size:13px;color:var(--ink2)}
+@media (max-width:1020px){ .pgrid{grid-template-columns:repeat(2,minmax(0,1fr))} .gaps{grid-template-columns:1fr} }
+@media (max-width:1020px){
+.stage{grid-template-columns:1fr}
+.method{grid-template-columns:1fr}
+.c-mode,.c-when,.c-rule,.c-crop,.c-area{grid-column:1/-1}
+}
+@media (max-width:560px){
+.mast{grid-template-columns:1fr}
+.spec{text-align:left}
+.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.reads{grid-template-columns:1fr}
+.stat .v{font-size:24px}
+}
+@media (prefers-reduced-motion: reduce){ .split div{transition:none} }
+</style>
+
+<div class="wrap">
+<header class="mast">
+<div>
+<div class="eyebrow">Companion model to "Concrete before water" · Rafique, Ali &amp; Ali · <a href="/">all tools</a></div>
+<h1>Cholistan Canal Simulator</h1>
+<p class="lede">This is the ten-daily water balance used in the paper. Each year is driven by IRSA's official river record, so you can see what the canal gets under its own water certificate, what a looser rule would give, and whose water it takes when it runs at design flow. The paper's headline results are the defaults: 2023-24, the IRSA certificate, cotton on the full Phase I area.</p>
+</div>
+<div class="spec" aria-label="Phase I design figures">
+<div><b>176 km</b>main canal</div>
+<div><b>116.7</b>m³/s (4,120 cusecs)</div>
+<div><b>182,900</b>ha (452,000 acres)</div>
+</div>
+<div class="status">
+<span class="chip"><span class="dot"></span>Paused by the CCI since 28 Apr 2025, not cancelled</span>
+<span class="chip">IRSA certificate schedule: 0.72 km³ (0.58 MAF) in a normal year; 0.56 km³ (0.45 MAF) was reported in Feb 2025</span>
+<span class="chip">River record: IRSA Annual Report 2024-25 · ten-daily pattern is modelled, not observed</span>
+</div>
+</header>
+
+<section class="controls" aria-label="Scenario">
+<div class="ctl c-mode">
+<span class="lab">Simulation mode</span>
+<div class="seg" id="modeSeg">
+<button type="button" data-mode="year" aria-pressed="true">Historical year</button>
+<button type="button" data-mode="gauge" aria-pressed="false">Real gauge day</button>
+</div>
+</div>
+<div class="ctl c-when">
+<span class="lab" id="whenLab">Water year (Apr to Mar), from the official record</span>
+<div class="seg years" id="whenSeg"></div>
+</div>
+<div class="ctl c-rule">
+<label for="rule">Water rule: how much the canal is allowed to take</label>
+<select id="rule">
+<option value="irsa">IRSA certificate schedule (the official plan)</option>
+<option value="accord">Accord flood share: Punjab takes 37% of the surplus</option>
+<option value="surplus">Every cusec above the Kotri minimum</option>
+<option value="design">Run at design flow, ignore all limits</option>
+</select>
+<div class="rulehelp" id="ruleHelp"></div>
+</div>
+<div class="ctl c-crop">
+<label for="crop">Crop in the command area</label>
+<select id="crop">
+<option value="cotton">Cotton (May to Oct)</option>
+<option value="fodder">Kharif fodder (Jun to Sep)</option>
+<option value="wheat">Wheat (Nov to Apr)</option>
+</select>
+</div>
+<div class="ctl c-area">
+<label for="area">Area to irrigate: <span class="rangeval" id="areaVal"></span></label>
+<input type="range" id="area" min="50000" max="1196000" step="1000" value="452000">
+<div class="note" style="font-size:12px">452,000 = Phase I. 1,196,000 = Phases I and II.</div>
+</div>
+<div class="ctl c-adv">
+<details class="adv">
+<summary>Engineering assumptions (open to change)</summary>
+<div class="advgrid">
+<div class="ctl"><label for="kmin">Minimum flow kept below Kotri <span class="rangeval" id="kminVal"></span></label><input type="range" id="kmin" min="0" max="15000" step="500" value="5000"></div>
+<div class="ctl"><label for="link">Added link-canal capacity <span class="rangeval" id="linkVal"></span></label><input type="range" id="link" min="0" max="10000" step="250" value="5000"></div>
+<div class="ctl"><label for="eff">Field application efficiency <span class="rangeval" id="effVal"></span></label><input type="range" id="eff" min="0.4" max="0.9" step="0.05" value="0.6"></div>
+<div class="ctl"><label for="loss">Loss in Marot canal and distributaries <span class="rangeval" id="lossVal"></span></label><input type="range" id="loss" min="0" max="0.35" step="0.01" value="0.15"></div>
+<div class="ctl"><label for="own">Water Punjab moves from its own canals <span class="rangeval" id="ownVal"></span></label><input type="range" id="own" min="0" max="4120" step="20" value="0"></div>
+</div>
+</details>
+</div>
+</section>
+
+<section class="stage">
+<div class="mapcard">
+<canvas id="map" aria-label="Map of the Indus river system showing the Cholistan canal route and animated water flows" role="img"></canvas>
+<div class="mapbadge" aria-live="polite"><span class="small" id="badgeTop"></span><span class="big" id="badgeBig"></span><span class="small" id="badgeSub"></span></div>
+<div class="legend">
+<span><i class="sw" style="background:var(--water)"></i>River, width shows flow</span>
+<span><i class="sw" style="background:var(--canal)"></i>Cholistan canal water</span>
+<span><i class="sw" style="background:var(--ink3)"></i>Existing link canals</span>
+<span><i class="sw dash"></i>Dry river bed</span>
+<span><i class="sw box" style="background:var(--sand)"></i>Cholistan desert</span>
+<span id="legendNote"></span>
+</div>
+</div>
+<aside class="side">
+<div class="verdict" id="verdict"><span class="pill" id="vPill"></span><h2 id="vHead"></h2><p id="vText"></p></div>
+<div class="stats" id="stats"></div>
+<div class="now">
+<div class="head"><h3 id="nowTitle">This ten-day period</h3><span class="eyebrow" id="nowWhen"></span></div>
+<div class="reads" id="reads"></div>
+<div>
+<div class="lab eyebrow" style="margin-bottom:5px">Where the canal's water comes from</div>
+<div class="split" id="split"></div>
+<div class="splitkey" style="margin-top:6px">
+<span><i class="sw box" style="background:var(--water2)"></i>Surplus that would reach the sea</span>
+<span><i class="sw box" style="background:var(--pj)"></i>Punjab's own canals</span>
+<span><i class="sw box" style="background:var(--warn)"></i>Delta minimum flow</span>
+<span><i class="sw box" style="background:var(--bad)"></i>Sindh and other provinces' supplies</span>
+</div>
+</div>
+<p class="note" id="nowNote"></p>
+</div>
+</aside>
+</section>
+
+<section class="timeline" id="timelineSec">
+<div class="tlhead">
+<button type="button" class="btn play" id="play">Play year</button>
+<div class="grow"><input type="range" id="scrub" min="0" max="35" step="1" value="13" aria-label="Ten-day period"></div>
+<span class="eyebrow" id="scrubLab"></span>
+</div>
+<div class="sec-head"><h3>Canal draw against crop demand, and what is left below Kotri</h3><p style="font-size:13px">Bars are what the canal takes in each 10-day period, coloured by whose water it is. Click or drag on the chart to move through the year.</p></div>
+<div class="chartbox"><canvas id="chart"></canvas><div class="tip" id="tip" hidden></div></div>
+</section>
+
+<section class="timeline" id="gaugeSec" hidden>
+<div class="sec-head"><h3>Federal Flood Commission readings for this day</h3><p style="font-size:13px">Actual barrage discharges in cusecs. The map above draws every river at these flows. "NIL" means nothing passed the barrage.</p></div>
+<div class="tablewrap"><table id="gaugeTable" style="min-width:640px"></table></div>
+</section>
+
+<section class="paper" aria-label="Findings of the paper">
+<div class="sec-head"><h2>What the paper finds</h2><p>Six governance gaps were scored from 5 (sound) to 1 (failing). Four failed and two were weak. The water results below come from this model with its default settings.</p></div>
+<div class="pgrid">
+<div class="pnum"><b>22</b><span>days a normal year at full flow under the IRSA certificate</span></div>
+<div class="pnum"><b>18%</b><span>of cotton water need met on the Phase I area</span></div>
+<div class="pnum"><b>1.9–3.0</b><span>km³ a year taken from downstream provinces and the delta if run at design flow all year</span></div>
+<div class="pnum"><b>58,800</b><span>ha reliably irrigated even at full design flow, 32% of Phase I</span></div>
+</div>
+<div class="gaps">
+<div class="gap s1"><i>1</i><b>Political</b><span>Launched before Sindh, the downstream province, consented</span></div>
+<div class="gap s1"><i>1</i><b>Administrative</b><span>Works near Marot before appraisal; launch before final approval</span></div>
+<div class="gap s1"><i>1</i><b>Institutional</b><span>Kotri minimum never fixed; no ten-daily water accounts</span></div>
+<div class="gap s2"><i>2</i><b>Scope</b><span>Flood canal redesigned as perennial with no new allocation</span></div>
+<div class="gap s1"><i>1</i><b>Technical</b><span>Design flow far above the water the certificate supplies</span></div>
+<div class="gap s2"><i>2</i><b>Financial</b><span>Four cost totals, no published benefit-cost analysis</span></div>
+</div>
+<p class="note">The paper proposes a sequenced reset: treat spending so far as sunk, settle the Kotri minimum and publish ten-daily data, make consent a condition of approval, rebaseline the scope and cost, fund drinking water separately, and build in phases sized to proven water.</p>
+</section>
+
+<section style="display:grid;gap:10px">
+<div class="sec-head">
+<h2>Every year in the record</h2>
+<p id="ledgerLede">The same settings run against each year IRSA has published. Click a year to load it on the map.</p>
+</div>
+<div class="tablewrap"><table id="ledger"></table></div>
+</section>
+
+<section class="method">
+<div>
+<h3>How the simulation works</h3>
+<ol>
+<li><b>River record.</b> Annual Sutlej flow at Sulemanki and annual flow below Kotri for each year come from IRSA. They are spread over 36 ten-day periods using a typical monsoon-heavy pattern.</li>
+<li><b>Surplus.</b> Water that would reach the sea above the minimum flow is the only water nobody downstream uses. Every cusec taken upstream is about one cusec less below Kotri.</li>
+<li><b>Rule.</b> The chosen rule sets the canal's legal draw. The canal head (4,120 cusecs) and the Sutlej plus the added link capacity set its physical limit.</li>
+<li><b>Whose water.</b> The draw is taken first from the surplus, then from Punjab's own canals if allowed, then from the delta minimum, then from other provinces' supplies.</li>
+<li><b>Crop.</b> Demand is FAO-56 crop water use for the chosen crop, less rain, divided by field efficiency and distribution losses.</li>
+</ol>
+<div class="formula">1 cusec             = 0.0283 m³/s
+4,120 cusecs        = 116.7 m³/s (design)
+1 cusec for 1 day   = 1.9835 acre-feet
+1 MAF               = 1.233 km³
+1 mm/day on 1 acre  = 0.001654 cusecs</div>
+</div>
+<div>
+<h3>Assumptions and limits</h3>
+<ul>
+<li><b>Monthly pattern is modelled.</b> IRSA publishes annual and seasonal totals, not ten-day flows. The split across months is an assumption fitted to IRSA's Kharif and Rabi averages.</li>
+<li><b>Canal routes are schematic.</b> No alignment drawing is public. The route follows the reported Sulemanki to Fort Abbas line and a westward Marot branch.</li>
+<li><b>2025-26 is partly estimated.</b> Kharif 2025 flow below Kotri (30.85 MAF) is actual. Rabi is taken as the five-year average, and the Sutlej share of the 14.5 MAF eastern-river inflow is estimated at 8 MAF.</li>
+<li><b>Floods are averaged.</b> A ten-day mean hides peaks. Real canals often close at peak flood to keep silt out, so flood-year results are a best case.</li>
+<li><b>No groundwater.</b> Cholistan's groundwater is mostly brackish (GWP), so the model assumes the canal is the only source.</li>
+<li><b>Accord shares only.</b> The model uses the Accord's para 4 flood split of 37%, 37%, 14% and 12%. It does not settle the legal dispute.</li>
+</ul>
+</div>
+<div>
+<h3>Sources</h3>
+<ul class="src">
+<li><b>Rafique, S., Ali, F. &amp; Ali, R. B.</b> Concrete before water: governance gaps behind Pakistan's stalled Cholistan Canal and lessons for desert irrigation megaprojects. Manuscript prepared for <i>Water Policy</i>. This simulator is the model described in its Methods section.</li>
+<li><a href="http://pakirsa.gov.pk/Doc/IRSA_Annual_Report_2024_25.pdf" target="_blank" rel="noopener">IRSA Annual Report 2024-25</a>: Sutlej at Sulemanki and flows below Kotri, 2014-15 to 2023-24, and Kharif 2025.</li>
+<li><a href="https://www.thenews.com.pk/print/1285358-amid-opposition-by-sindh-irsa-approved-water-availability-certificate-for-cholistan-canal-a-year-back" target="_blank" rel="noopener">The News (2025)</a>: IRSA's 10-daily certificate schedule, May to September.</li>
+<li><a href="https://english.aaj.tv/news/330404051/irsa-approves-water-supply-for-cholistan-project" target="_blank" rel="noopener">Aaj News (22 Feb 2025)</a>: 450,000 acre-feet approved, with Sindh's dissent.</li>
+<li>Federal Flood Commission river sheets: <a href="https://ffc.gov.pk/wp-content/uploads/2025/02/Annexure-I-20-02-2025-0600.pdf" target="_blank" rel="noopener">20 Feb 2025</a>, <a href="https://ffc.gov.pk/wp-content/uploads/2025/04/Annexure-I-22-04-2025-0600.pdf" target="_blank" rel="noopener">22 Apr 2025</a>, <a href="https://ffc.gov.pk/wp-content/uploads/2025/09/Annexure-I-09-09-2025-0400.pdf" target="_blank" rel="noopener">9 Sep 2025</a>.</li>
+<li><a href="https://www.dawn.com/news/1870934" target="_blank" rel="noopener">Dawn, "Watering Cholistan" (Nov 2024)</a>: 176 km, 120 km Marot canal, 452 km network, link upgrades, 8.6 MAF delta need.</li>
+<li><a href="https://www.dawn.com/news/amp/1837651" target="_blank" rel="noopener">Dawn (Jun 2024)</a>: about 5,000 cusecs needed below Kotri.</li>
+<li><a href="https://en.wikipedia.org/wiki/List_of_canals_in_Pakistan" target="_blank" rel="noopener">List of canals in Pakistan</a>: link canal and Sulemanki canal design discharges.</li>
+<li><a href="https://mowr.gov.pk/SiteImage/Misc/files/APPORTIONMENT-OF-THE-WATERS-OF-THE-INDUS-RIVER-SYSTEM-1991.pdf" target="_blank" rel="noopener">Water Apportionment Accord 1991</a>: paras 4, 7 and 14(d).</li>
+<li><a href="https://www.mdpi.com/2071-1050/15/3/1768" target="_blank" rel="noopener">Sustainability (2023), Multan ET0</a> and <a href="https://www.fao.org/4/x0490e/x0490e00.htm" target="_blank" rel="noopener">FAO-56</a>: crop water use.</li>
+<li><a href="https://www.dawn.com/news/1945463" target="_blank" rel="noopener">Dawn (29 Sep 2025)</a>: project shelved, Punjab still claims the water.</li>
+</ul>
+</div>
+</section>
+</div>
+
+<script>
+// ===== Cholistan canal water-balance model (shared by page and tests) =====
+const AF_PER_CUSEC_DAY = 1.9835;          // 1 cusec flowing for 1 day
+const CUSEC_PER_MM_ACRE = 0.001654;       // 1 mm/day over 1 acre, in cusecs
+// Water year: Apr..Mar (IRSA convention, Kharif Apr-Sep, Rabi Oct-Mar)
+const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const MDAYS  = [30,31,30,31,31,30,31,30,31,31,28,31];
+// 36 ten-daily periods; the third period takes the remaining days of the month
+const DEKADS = [];
+MONTHS.forEach((m,i)=>{ for(let d=0; d<3; d++) DEKADS.push({m:i, d, label:m+' '+['I','II','III'][d], days: d<2?10:MDAYS[i]-20}); });
+
+// IRSA water availability certificate, 25 Jan 2024, 10-daily cusecs (The News, 2025)
+const IRSA = {Apr:[0,0,0], May:[0,30,60], Jun:[678,845,870], Jul:[1437,1926,4122], Aug:[3416,2760,4122], Sep:[3962,2760,1437]};
+
+// Official annual series, IRSA Annual Report 2024-25 (MAF). Kharif 2025 = Kharif actual + assumed Rabi.
+const YEARS = [
+{id:'2014-15', sutlej:0.19, kotri:6.86},
+{id:'2015-16', sutlej:2.16, kotri:36.61},
+{id:'2016-17', sutlej:0.36, kotri:10.57},
+{id:'2017-18', sutlej:1.34, kotri:9.49},
+{id:'2018-19', sutlej:0.87, kotri:1.79},
+{id:'2019-20', sutlej:2.54, kotri:12.66},
+{id:'2020-21', sutlej:0.96, kotri:15.25},
+{id:'2021-22', sutlej:0.13, kotri:2.11},
+{id:'2022-23', sutlej:0.41, kotri:42.15},
+{id:'2023-24', sutlej:8.12, kotri:14.29},
+{id:'2025-26', sutlej:8.0,  kotri:31.98, est:true},
+];
+
+// Modelled monthly distribution (% of annual volume), Apr..Mar.
+// Kotri: Rabi ~6% of annual, matching IRSA 5-year averages (Rabi 1.13 vs Kharif 18.03 MAF).
+const SHAPE_KOTRI  = [0.4,0.8,5.0,22.0,38.0,27.0,3.0,0.8,0.4,0.3,0.3,0.4];
+// Sutlej at Sulemanki: monsoon releases and floods from India dominate Jul-Sep.
+const SHAPE_SUTLEJ = [2.0,2.0,4.0,18.0,35.0,29.5,3.0,1.0,1.0,1.0,1.5,2.0];
+
+// Reference ET (mm/day), shape fitted to the reported Multan range 1.8-10.24 and mean 5.38 (Sustainability 2023)
+const ET0 = [6.3,8.4,10.2,8.3,7.0,5.8,4.3,2.6,1.9,1.8,2.8,4.3];
+// Effective rain (mm/month), Cholistan 100-200 mm/yr mostly Jul-Aug (GWP case study)
+const RAIN = [0,0,5,25,25,5,0,0,0,0,0,0];
+// FAO-56 style crop coefficients by month (0 = not in field)
+const CROPS = {
+cotton: {name:'Cotton', kc:[0,0.45,0.75,1.15,1.15,1.0,0.7,0,0,0,0,0]},
+fodder: {name:'Kharif fodder (sorghum / millet)', kc:[0,0,0.4,0.9,1.0,0.7,0,0,0,0,0,0]},
+wheat:  {name:'Wheat (Rabi)', kc:[0.4,0,0,0,0,0,0,0.4,0.7,1.1,1.15,0.9]},
+};
+
+function monthlyToDekads(annualMAF, shape){
+const tot = shape.reduce((a,b)=>a+b,0);
+const mMean = shape.map((s,i)=> annualMAF*1e6*(s/tot) / (MDAYS[i]*AF_PER_CUSEC_DAY)); // mean cusecs per month
+const out = [];
+for(let i=0;i<12;i++){
+const prev = mMean[(i+11)%12], next = mMean[(i+1)%12], m = mMean[i];
+let v = [0.7*m+0.3*prev, m, 0.7*m+0.3*next];
+// rescale so the month volume is preserved
+const days = [10,10,MDAYS[i]-20];
+const vol = v.reduce((a,x,k)=>a+x*days[k],0), want = m*MDAYS[i];
+v = v.map(x=> vol>0 ? x*want/vol : 0);
+out.push(...v);
+}
+return out;
+}
+
+function periodCalc(S, K, dk, i, p){
+const crop = CROPS[p.crop];
+const physical = Math.min(p.canalCap, S + p.linkCap);
+const surplus = Math.max(0, K - p.kmin);          // would reach the sea above the delta minimum
+const share37 = 0.37*surplus;                     // Punjab's flood share, Accord para 4
+const mon = MONTHS[dk.m];
+let legalSurplus, own, want;
+if(p.rule==='irsa'){
+const cert = (IRSA[mon]||[0,0,0])[dk.d];
+const para4 = (mon==='Jul'||mon==='Aug'||mon==='Sep');
+legalSurplus = para4 ? share37 : 0;
+own = para4 ? 0 : cert;                          // May-Jun: para 14(d), from Punjab's own share
+want = Math.min(cert, legalSurplus + own);
+} else if(p.rule==='accord'){ legalSurplus = share37; own = p.ownShare; want = share37 + own; }
+else if(p.rule==='surplus'){ legalSurplus = surplus; own = p.ownShare; want = surplus + own; }
+else { legalSurplus = surplus; own = p.ownShare; want = Infinity; }
+const draw = Math.max(0, Math.min(physical, want));
+// who gives up the water, in the order a river would lose it
+let left = draw;
+const fromSurplus = Math.min(left, legalSurplus); left -= fromSurplus;
+const fromPunjab  = Math.min(left, own);          left -= fromPunjab;
+const fromDelta   = Math.min(left, Math.max(0, Math.min(K - fromSurplus, p.kmin))); left -= fromDelta;
+const fromUsers   = Math.max(0, left);             // other provinces' canal supplies (mostly Sindh)
+const over37 = Math.max(0, fromSurplus - share37);
+const viaLink = Math.max(0, draw - S);
+const kotAfter = Math.max(0, K - (draw - fromPunjab));
+// crop demand at canal head for the command area
+const et = crop.kc[dk.m]*ET0[dk.m];
+const net = Math.max(0, et - RAIN[dk.m]/MDAYS[dk.m]);
+const perAcre = net / (p.fieldEff*(1-p.distLoss)) * CUSEC_PER_MM_ACRE; // cusecs per acre at head
+const demand = perAcre * p.area;
+const met = Math.min(draw, demand);
+return {i, m:dk.m, label:dk.label, days:dk.days, S, K, surplus, share37, physical, want, draw, fromSurplus, fromPunjab, fromDelta, fromUsers, over37, viaLink, kotAfter, demand, met, perAcre};
+}
+
+function simulate(year, p){
+// p: {rule, crop, area, kmin, linkCap, canalCap, fieldEff, distLoss, ownShare}
+const sut = monthlyToDekads(year.sutlej, SHAPE_SUTLEJ);
+const kot = monthlyToDekads(year.kotri, SHAPE_KOTRI);
+const rows = DEKADS.map((dk,i)=> periodCalc(sut[i], kot[i], dk, i, p));
+const AF = x=> x*AF_PER_CUSEC_DAY;
+const sum = f=> rows.reduce((a,r)=>a+f(r)*r.days,0);
+const delivered = AF(sum(r=>r.draw))/1e6;
+const demandTot = AF(sum(r=>r.demand))/1e6;
+const metTot = AF(sum(r=>r.met))/1e6;
+const fullDays = rows.reduce((a,r)=>a+(r.draw>=p.canalCap*0.98?r.days:0),0);
+const flowDays = rows.reduce((a,r)=>a+(r.draw>1?r.days:0),0);
+const cropRows = rows.filter(r=>r.perAcre>0);
+const reliableArea = cropRows.length ? Math.min(...cropRows.map(r=>r.draw/r.perAcre)) : 0;
+const punjab = AF(sum(r=>r.fromPunjab))/1e6, over37 = AF(sum(r=>r.over37))/1e6, users = AF(sum(r=>r.fromUsers))/1e6, delta = AF(sum(r=>r.fromDelta))/1e6, surp = AF(sum(r=>r.fromSurplus))/1e6;
+const kotriBefore = AF(sum(r=>r.K))/1e6, kotriAfter = AF(sum(r=>r.kotAfter))/1e6;
+return {rows, delivered, demandTot, metTot, metPct: demandTot>0? metTot/demandTot : 0, fullDays, flowDays,
+reliableArea: Math.min(reliableArea, p.area), punjab, over37, users, delta, surp, kotriBefore, kotriAfter,
+perAcreSupply: delivered*1e6*(1-p.distLoss)/p.area};
+}
+
+
+
+// ---------- geography (approximate, for orientation) ----------
+const B = {lon0:66.9, lon1:75.3, lat0:23.9, lat1:34.4};
+const COSL = Math.cos(29.3*Math.PI/180);
+const RIV = {
+indusUp:  [[34.09,72.69],[33.90,72.25],[33.40,71.85],[32.96,71.55],[32.43,71.38],[31.85,70.95],[31.20,70.75],[30.70,70.65],[30.05,70.80],[29.40,70.62],[28.95,70.37]],
+indusMid: [[28.95,70.37],[28.42,69.71],[28.00,69.20],[27.68,68.85],[27.25,68.20],[26.60,67.95],[26.00,67.95],[25.37,68.31]],
+indusSea: [[25.37,68.31],[24.95,68.10],[24.60,67.75],[24.15,67.42]],
+jhelumUp: [[33.55,73.85],[33.14,73.64],[32.68,73.52]],
+jhelumLow:[[32.68,73.52],[32.45,73.00],[32.25,72.50],[31.75,72.30],[31.15,72.15]],
+chenabUp: [[32.86,74.78],[32.67,74.46],[32.40,73.97],[32.32,73.69]],
+chenabMid:[[32.32,73.69],[31.95,73.20],[31.72,72.98],[31.40,72.50],[31.15,72.15]],
+chenabLow:[[31.15,72.15],[30.65,71.85],[30.15,71.40],[29.70,71.15],[29.35,71.03],[28.95,70.37]],
+raviUp:   [[32.30,75.12],[32.08,74.95],[31.62,74.28],[31.40,74.05],[31.22,73.86]],
+raviLow:  [[31.22,73.86],[30.95,73.30],[30.75,72.70],[30.57,72.10],[30.65,71.85]],
+sutlejUp: [[31.12,74.95],[30.98,74.55],[30.70,74.20],[30.38,73.87]],
+sutlejLow:[[30.38,73.87],[30.10,73.25],[29.82,72.55],[29.60,72.10],[29.42,71.70],[29.35,71.03]],
+};
+const LINKS = {
+rq: [[32.68,73.52],[32.50,73.62],[32.32,73.69]],
+qb: [[32.32,73.69],[31.85,73.76],[31.50,73.86],[31.22,73.86]],
+bs: [[31.22,73.86],[30.85,73.92],[30.38,73.87]],
+};
+const CANAL = {
+main:  [[30.38,73.87],[30.05,73.55],[29.70,73.22],[29.45,73.02],[29.19,72.85]],
+marot: [[29.45,73.02],[29.33,72.72],[29.20,72.45]],
+};
+const COMMAND = [[29.62,73.08],[29.42,72.70],[29.26,72.30],[29.08,72.38],[29.04,72.82],[29.20,73.02],[29.40,73.18]];
+const DESERT = [[29.80,73.12],[29.30,72.30],[29.02,71.45],[28.60,70.70],[28.05,70.05],[27.70,70.20],[28.10,71.20],[28.45,72.15],[28.90,72.75],[29.25,73.05],[29.65,73.28]];
+const BORDER = [[31.75,74.58],[31.10,74.58],[30.98,74.60],[30.62,74.18],[30.37,73.93],[30.05,73.50],[29.65,73.28],[29.25,73.05],[28.90,72.75],[28.45,72.15],[28.10,71.20],[27.85,70.60],[27.50,70.05],[26.90,69.95],[26.40,70.10],[25.75,70.25],[25.20,70.60],[24.70,71.05],[24.30,71.05],[24.05,70.10],[23.90,69.20]];
+const COAST = [[25.40,66.90],[25.05,66.95],[24.86,67.00],[24.75,67.20],[24.40,67.30],[24.15,67.42],[24.00,67.80],[23.90,68.30],[23.75,68.70],[23.60,69.20]];
+const NODES = [
+{id:'Tarbela',ll:[34.09,72.69],k:'dam'},{id:'Mangla',ll:[33.14,73.64],k:'dam'},
+{id:'Rasul',ll:[32.68,73.52]},{id:'Marala',ll:[32.67,74.46]},{id:'Khanki',ll:[32.40,73.97],minor:1},{id:'Qadirabad',ll:[32.32,73.69]},
+{id:'Trimmu',ll:[31.15,72.15]},{id:'Balloki',ll:[31.22,73.86]},{id:'Sidhnai',ll:[30.57,72.10],minor:1},
+{id:'Sulemanki',ll:[30.38,73.87],key:1},{id:'Islam',ll:[29.82,72.55],minor:1},{id:'Panjnad',ll:[29.35,71.03]},
+{id:'Kalabagh',ll:[32.96,71.55],minor:1},{id:'Chashma',ll:[32.43,71.38]},{id:'Taunsa',ll:[30.70,70.65]},
+{id:'Guddu',ll:[28.42,69.71]},{id:'Sukkur',ll:[27.68,68.85]},{id:'Kotri',ll:[25.37,68.31],key:1},
+];
+const TOWNS = [['Lahore',31.55,74.34],['Multan',30.20,71.47],['Bahawalpur',29.40,71.68],['Bahawalnagar',29.99,73.25],['Fort Abbas',29.19,72.85],['Derawar Fort',28.77,71.33],['Karachi',24.86,67.01],['Hyderabad',25.40,68.42]];
+const RIVERNAMES = [['INDUS',31.35,70.45,-1.25],['JHELUM',32.42,72.72,-0.55],['CHENAB',31.55,72.70,-0.85],['RAVI',30.90,73.15,-0.55],['SUTLEJ',30.05,72.95,-0.45],['INDUS',26.9,67.70,-1.3]];
+
+// ---------- real gauge days (FFC), outflows in cusecs ----------
+const SNAPS = [
+{id:'feb', label:'20 Feb 2025', sub:'Winter low flow', dekad:31, src:'FFC river sheet, 20 Feb 2025, 06:00',
+f:{Tarbela:45000,Kalabagh:46000,Chashma:42000,Taunsa:39000,Guddu:30000,Sukkur:5000,Kotri:0,Mangla:33000,Rasul:8000,RasulIn:28000,Marala:0,Khanki:1000,Qadirabad:0,QadirabadIn:18000,Trimmu:2000,Panjnad:0,Balloki:4000,BallokiIn:16000,Sidhnai:0,SulemankiIn:6000,Sulemanki:0,Islam:0}},
+{id:'apr', label:'22 Apr 2025', sub:'Early Kharif', dekad:2, src:'FFC river sheet, 22 Apr 2025, 06:00',
+f:{Tarbela:20000,Kalabagh:52000,Chashma:56000,Taunsa:41000,Guddu:29000,Sukkur:7000,Kotri:0,Mangla:20000,Rasul:0,RasulIn:12000,Marala:21000,Khanki:29000,Qadirabad:20000,QadirabadIn:38000,Trimmu:0,Panjnad:0,Balloki:0,BallokiIn:20000,Sidhnai:0,SulemankiIn:12000,Sulemanki:4000,Islam:0}},
+{id:'sep', label:'9 Sep 2025', sub:'Monsoon flood', dekad:15, src:'FFC river sheet, 9 Sep 2025, 04:00',
+f:{Tarbela:139900,Kalabagh:166998,Chashma:181500,Taunsa:206642,Guddu:416763,Sukkur:329310,Kotri:231763,Mangla:9000,Rasul:5341,RasulIn:9641,Marala:78022,Khanki:115688,Qadirabad:120652,QadirabadIn:120652,Trimmu:449472,Panjnad:452930,Balloki:103295,BallokiIn:111295,Sidhnai:135757,SulemankiIn:137521,Sulemanki:137521,Islam:123026,GSW:327030}},
+];
+
+const RULEHELP = {
+irsa:'The certificate allows 0 in April, a trickle in May, up to 870 cusecs in June and up to 4,122 in July to September, nothing from October to March. July to September must come from flood water (Accord para 4), May and June from Punjab\'s own share (para 14(d)).',
+accord:'Punjab may take its 37% share of the flood surplus above the Kotri minimum. Use the "own canals" slider to let Punjab move more water from its other canals.',
+surplus:'The canal takes every cusec that would otherwise reach the sea above the minimum, including Sindh\'s, Balochistan\'s and KP\'s shares of it. This is the physical best case without harming anyone downstream.',
+design:'The canal runs at 4,120 cusecs all year whatever the river carries. The panel shows whose water that would actually be.',
+};
+
+// ---------- state ----------
+const S = {mode:'year', year:9, snap:2, dekad:13, rule:'irsa', crop:'cotton', area:452000, kmin:5000, link:5000, eff:0.6, loss:0.15, own:0, playing:false};
+const $ = id=>document.getElementById(id);
+const fmt = (n,d=0)=> (n==null||isNaN(n))?'–':Number(n).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const fcs = n=> n<0.5 ? 'NIL' : fmt(Math.round(n));
+const params = ()=>({rule:S.rule, crop:S.crop, area:S.area, kmin:S.kmin, linkCap:S.link, canalCap:4120, fieldEff:S.eff, distLoss:S.loss, ownShare:S.own});
+let RES = null, ALL = [], CUR = null;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function verdictOf(r){
+const harm = r.users + r.delta;
+if(harm > 0.02) return {k:'harm', t:'Takes others\' water'};
+if(r.metPct >= 0.75) return {k:'ok', t:'Feasible'};
+if(r.metPct >= 0.40) return {k:'partial', t:'Partly feasible'};
+return {k:'fail', t:'Not feasible'};
+}
+
+function recompute(){
+const p = params();
+ALL = YEARS.map(y=>simulate(y,p));
+RES = ALL[S.year];
+if(S.mode==='year'){ CUR = RES.rows[S.dekad]; }
+else {
+const sn = SNAPS[S.snap];
+CUR = periodCalc(sn.f.Sulemanki, sn.f.Kotri, DEKADS[sn.dekad], sn.dekad, p);
+}
+renderPanels(); renderLedger(); drawChart(); markDirty();
+}
+
+// ---------- controls ----------
+function buildWhen(){
+const seg = $('whenSeg'); seg.innerHTML='';
+if(S.mode==='year'){
+$('whenLab').textContent='Water year (Apr to Mar), from the official record';
+YEARS.forEach((y,i)=>{
+const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-pressed', i===S.year);
+const tag = y.kotri>=30?'flood':(y.kotri<3?'dry':(y.sutlej>=5?'Sutlej flood':''));
+b.innerHTML = y.id + (y.est?'*':'') + (tag?`<span class="flag">${tag}</span>`:'<span class="flag">&nbsp;</span>');
+b.onclick=()=>{S.year=i; buildWhen(); recompute();};
+seg.appendChild(b);
+});
+} else {
+$('whenLab').textContent='Day of real barrage readings (Federal Flood Commission)';
+SNAPS.forEach((s,i)=>{
+const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-pressed', i===S.snap);
+b.innerHTML = s.label + `<span class="flag">${s.sub}</span>`;
+b.onclick=()=>{S.snap=i; buildWhen(); recompute(); renderGauge();};
+seg.appendChild(b);
+});
+}
+}
+function bindControls(){
+document.querySelectorAll('#modeSeg button').forEach(b=> b.onclick=()=>{
+S.mode=b.dataset.mode; stopPlay();
+document.querySelectorAll('#modeSeg button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+$('timelineSec').hidden = S.mode!=='year'; $('gaugeSec').hidden = S.mode!=='gauge';
+buildWhen(); recompute(); if(S.mode==='gauge') renderGauge();
+});
+$('rule').onchange=e=>{S.rule=e.target.value; $('ruleHelp').textContent=RULEHELP[S.rule]; recompute();};
+$('crop').onchange=e=>{S.crop=e.target.value; recompute();};
+const rng=(id,key,lab,f)=>{ const el=$(id); const upd=()=>{S[key]=parseFloat(el.value); $(lab).textContent=f(S[key]);}; el.oninput=()=>{upd(); recompute();}; upd(); };
+rng('area','area','areaVal',v=>fmt(v)+' ac');
+rng('kmin','kmin','kminVal',v=>fmt(v)+' cs');
+rng('link','link','linkVal',v=>'+'+fmt(v)+' cs');
+rng('eff','eff','effVal',v=>Math.round(v*100)+'%');
+rng('loss','loss','lossVal',v=>Math.round(v*100)+'%');
+rng('own','own','ownVal',v=>fmt(v)+' cs');
+$('ruleHelp').textContent=RULEHELP[S.rule];
+$('scrub').oninput=e=>{S.dekad=+e.target.value; stopPlay(); recompute();};
+$('play').onclick=()=> S.playing?stopPlay():startPlay();
+}
+let playT=null;
+function startPlay(){ S.playing=true; $('play').textContent='Pause'; tick(); }
+function stopPlay(){ S.playing=false; $('play').textContent='Play year'; clearTimeout(playT); }
+function tick(){ if(!S.playing) return; S.dekad=(S.dekad+1)%36; $('scrub').value=S.dekad; recompute(); playT=setTimeout(tick, 850); }
+
+// ---------- panels ----------
+function renderPanels(){
+const p=params(), y=YEARS[S.year], r=RES, c=CUR, crop=CROPS[S.crop];
+const dk = DEKADS[c.i];
+// badge
+if(S.mode==='year'){
+$('badgeTop').textContent = 'Water year '+y.id+(y.est?' (partly estimated)':'');
+} else {
+$('badgeTop').textContent = SNAPS[S.snap].src;
+}
+$('badgeBig').textContent = S.mode==='year' ? periodName(dk) : SNAPS[S.snap].label;
+$('badgeSub').textContent = 'Canal draw '+fcs(c.draw)+' cs · below Kotri '+fcs(c.kotAfter)+' cs';
+$('scrubLab').textContent = periodName(dk)+' · '+y.id;
+
+// verdict
+const v = verdictOf(r);
+const vEl=$('verdict'); vEl.className='verdict '+v.k; const pill=$('vPill'); pill.className='pill '+v.k; pill.textContent=v.t+' in '+y.id;
+const okYears = ALL.filter(x=>verdictOf(x).k==='ok').length;
+const harmYears = ALL.filter(x=>verdictOf(x).k==='harm').length;
+$('vHead').textContent = `${okYears} of ${ALL.length} years fully water ${fmt(S.area)} acres of ${crop.name.toLowerCase().replace(' (rabi)','')} without taking anyone else's water`;
+let t = `In ${y.id} the canal delivers ${fmt(r.delivered,2)} MAF at its head. That meets ${Math.round(r.metPct*100)}% of what the crop needs over the year`;
+t += r.reliableArea>0 ? `, and it can water about ${fmt(Math.round(r.reliableArea/1000)*1000)} acres reliably through every 10-day period. ` : `, and not one acre gets enough water in every 10-day period of the season. `;
+t += `It runs at the full 4,120 cusecs on ${r.fullDays} days and is dry on ${365-r.flowDays}.`;
+if(r.users+r.delta>0.005) t += ` ${fmt(r.users+r.delta,2)} MAF of it is taken from Sindh's and other provinces' supplies or from the delta minimum.`;
+if(harmYears && S.rule==='design') t += ` This happens in all ${harmYears} years.`;
+$('vText').textContent=t;
+$('stats').hidden = S.mode!=='year';
+if(S.mode==='gauge'){
+const sn=SNAPS[S.snap];
+const dk2 = c.fromUsers>1?'harm':(c.draw<1?'fail':(c.demand<1||c.draw>=c.demand*0.75?'ok':'partial'));
+vEl.className='verdict '+dk2; pill.className='pill '+dk2;
+pill.textContent = {harm:'Takes others\' water',fail:'Canal dry',ok:'Water available',partial:'Short of crop need'}[dk2]+' on '+sn.label;
+$('vHead').textContent = c.draw<1 ? `On ${sn.label} the canal gets nothing under this rule` : `On ${sn.label} the canal could take ${fcs(c.draw)} cusecs`;
+$('vText').textContent = `Below Kotri the river carried ${c.K<1?'nothing (NIL)':fcs(c.K)+' cusecs'} that day. ${periodNote(c)}`;
+}
+
+// stats
+const stats=[
+['Delivered at canal head', fmt(r.delivered,2), 'MAF', fmt(r.delivered*1.2335,2)+' km³ · design max '+fmt(4120*365*AF_PER_CUSEC_DAY/1e6*1.2335,2)+' km³'],
+['Crop water need met', Math.round(r.metPct*100), '%', 'need '+fmt(r.demandTot,2)+' MAF'],
+['Reliably irrigated', r.reliableArea>=1000? fmt(r.reliableArea/1000,0)+'k':'0', 'acres', fmt(Math.round(r.reliableArea*0.4047/100)*100)+' ha · '+Math.round(r.reliableArea/S.area*100)+'% of target'],
+['Days at full 4,120 cs', r.fullDays, 'days', 'flowing '+r.flowDays+' days'],
+['Water per acre', fmt(r.perAcreSupply,2), 'AF/ac', 'after '+Math.round(S.loss*100)+'% network loss'],
+['Taken from Sindh & delta', fmt(r.users+r.delta,2), 'MAF', fmt((r.users+r.delta)*1.2335,2)+' km³ · Punjab canals '+fmt(r.punjab,2)+' MAF'],
+];
+$('stats').innerHTML = stats.map(s=>`<div class="stat"><span class="k">${s[0]}</span><span class="v">${s[1]}<small>${s[2]}</small></span><span class="s">${s[3]}</span></div>`).join('');
+
+// this period
+$('nowTitle').textContent = S.mode==='year' ? 'This ten-day period' : 'This day';
+$('nowWhen').textContent = S.mode==='year' ? periodName(dk) : SNAPS[S.snap].label;
+const reads=[
+['Sutlej passing Sulemanki', fcs(c.S)+' cs'],
+['Flow below Kotri, before', fcs(c.K)+' cs'],
+['Surplus above minimum', fcs(c.surplus)+' cs'],
+['Punjab 37% flood share', fcs(c.share37)+' cs'],
+['Canal draw', fcs(c.draw)+' cs'],
+['Of which via link canals', fcs(c.viaLink)+' cs'],
+['Crop demand at head', fcs(c.demand)+' cs'],
+['Flow below Kotri, after', fcs(c.kotAfter)+' cs'],
+];
+$('reads').innerHTML = reads.map(x=>`<div class="read"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('');
+const tot=Math.max(1,c.draw);
+const parts=[[c.fromSurplus,'var(--water2)'],[c.fromPunjab,'var(--pj)'],[c.fromDelta,'var(--warn)'],[c.fromUsers,'var(--bad)']];
+$('split').innerHTML = c.draw<1 ? '' : parts.map(x=>`<div style="width:${x[0]/tot*100}%;background:${x[1]}"></div>`).join('');
+$('nowNote').textContent = periodNote(c);
+$('legendNote').textContent = S.mode==='year' ? 'Upper rivers are drawn at a fixed width in this mode; only modelled flows change.' : 'All rivers drawn at the measured discharge of that day.';
+}
+function periodName(dk){ const d = dk.d===0?'1–10':(dk.d===1?'11–20':'21–'+MDAYS[dk.m]); return dk.label.split(' ')[0]+' '+d; }
+function periodNote(c){
+if(c.draw<1){
+if(S.rule==='irsa' && c.m>=6) return 'The IRSA certificate gives the canal nothing from October to March, so the canal is dry.';
+if(c.surplus<1) return 'Nothing reaches the sea above the minimum, so there is no surplus to take. The canal stays dry under this rule.';
+return 'The rule allows no water in this period.';
+}
+if(c.fromUsers>1) return `Below Kotri was already ${c.K<1?'dry':fcs(c.K)+' cusecs'}. Every cusec the canal takes now is cut from the canals of Sindh and the other provinces downstream.`;
+if(c.fromDelta>1) return 'The surplus has run out, so the canal is eating into the minimum flow the delta needs against sea intrusion.';
+if(c.demand>c.draw*1.05) return `The crop needs ${fcs(c.demand)} cusecs at the head but the canal carries ${fcs(c.draw)}. Only ${Math.round(c.draw/c.demand*100)}% of the area can be watered fully.`;
+if(c.demand<1) return 'The canal is flowing but the chosen crop is not in the field, so this water has no use in the model.';
+return 'Enough water reaches the command area for the crop in this period, and it comes from surplus or Punjab\'s own share.';
+}
+
+// ---------- ledger ----------
+function renderLedger(){
+const maxD = Math.max(...ALL.map(r=>r.delivered), 0.1);
+let h = `<thead><tr><th>Water year</th><th>Sutlej at<br>Sulemanki</th><th>Below Kotri<br>(no canal)</th><th>Canal<br>delivers</th><th>Full-flow<br>days</th><th>Crop need<br>met</th><th>Reliable<br>area</th><th>From Sindh<br>& delta</th><th>Verdict</th></tr></thead><tbody>`;
+ALL.forEach((r,i)=>{
+const y=YEARS[i], v=verdictOf(r);
+h += `<tr data-i="${i}" class="${i===S.year&&S.mode==='year'?'sel':''}"><td class="mono">${y.id}${y.est?'*':''}</td><td class="mono">${fmt(y.sutlej,2)} MAF</td><td class="mono">${fmt(y.kotri,2)} MAF</td>
+<td class="mono"><span class="bar" style="width:${Math.max(2,r.delivered/maxD*60)}px"></span>${fmt(r.delivered,2)} MAF <span style="color:var(--ink3)">(${fmt(r.delivered*1.2335,2)} km³)</span></td>
+<td class="mono">${r.fullDays}</td><td class="mono">${Math.round(r.metPct*100)}%</td><td class="mono">${fmt(Math.round(r.reliableArea/1000))}k ac</td>
+<td class="mono" style="color:${r.users+r.delta>0.02?'var(--bad)':'inherit'}">${fmt(r.users+r.delta,2)} MAF <span style="color:var(--ink3)">(${fmt((r.users+r.delta)*1.2335,2)} km³)</span></td><td><span class="pill ${v.k}">${v.t}</span></td></tr>`;
+});
+h += '</tbody>';
+const t=$('ledger'); t.innerHTML=h;
+t.querySelectorAll('tbody tr').forEach(tr=> tr.onclick=()=>{
+S.year=+tr.dataset.i;
+if(S.mode!=='year'){ document.querySelector('#modeSeg button[data-mode="year"]').click(); }
+buildWhen(); recompute();
+$('map').scrollIntoView({behavior: reduceMotion?'auto':'smooth', block:'center'});
+});
+$('ledgerLede').textContent = `Same rule, crop and area run against each year IRSA has published. * 2025-26 is partly estimated. Click a year to load it on the map.`;
+}
+function renderGauge(){
+const sn=SNAPS[S.snap], f=sn.f;
+const rows=[['Jhelum','Mangla (release)',f.Mangla],['Jhelum','Rasul (inflow / outflow)',[f.RasulIn,f.Rasul]],['Chenab','Marala',f.Marala],['Chenab','Qadirabad (inflow / outflow)',[f.QadirabadIn,f.Qadirabad]],['Chenab','Trimmu',f.Trimmu],['Ravi','Balloki (inflow / outflow)',[f.BallokiIn,f.Balloki]],['Ravi','Sidhnai',f.Sidhnai],['Sutlej','Sulemanki (inflow / outflow)',[f.SulemankiIn,f.Sulemanki]],['Sutlej','Islam',f.Islam],['Chenab','Panjnad',f.Panjnad],['Indus','Tarbela (release)',f.Tarbela],['Indus','Taunsa',f.Taunsa],['Indus','Guddu',f.Guddu],['Indus','Sukkur',f.Sukkur],['Indus','Kotri (to the sea)',f.Kotri]];
+let h='<thead><tr><th>River</th><th>Barrage</th><th>Discharge (cusecs)</th><th>Taken into canals here</th></tr></thead><tbody>';
+rows.forEach(r=>{ const v=r[2]; const isPair=Array.isArray(v);
+h+=`<tr style="cursor:default"><td>${r[0]}</td><td style="text-align:left">${r[1]}</td><td class="mono">${isPair?fcs(v[0])+' / '+fcs(v[1]):fcs(v)}</td><td class="mono">${isPair?fcs(Math.max(0,v[0]-v[1])):''}</td></tr>`; });
+h+='</tbody>';
+$('gaugeTable').innerHTML=h;
+}
+
+// ---------- chart ----------
+const chart = $('chart'); const cctx = chart.getContext('2d');
+let CH = {w:0,h:0,pad:{l:52,r:14,t:14,b:26}, split:0};
+function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function sizeChart(){
+const w = chart.parentElement.clientWidth; const h = w<560?300:340; const dpr=window.devicePixelRatio||1;
+chart.style.height=h+'px'; chart.width=Math.round(w*dpr); chart.height=Math.round(h*dpr); cctx.setTransform(dpr,0,0,dpr,0,0); CH.w=w; CH.h=h;
+}
+function drawChart(){
+if(S.mode!=='year' || !CH.w || !RES) return;
+const g=cctx, {w,h,pad}=CH, rows=RES.rows;
+g.clearRect(0,0,w,h);
+const ink=css('--ink'), ink2=css('--ink2'), ink3=css('--ink3'), line=css('--line'), grid=css('--grid');
+const topH = (h-pad.t-pad.b)*0.6, gap=24, botH=(h-pad.t-pad.b)-topH-gap;
+const x0=pad.l, x1=w-pad.r, bw=(x1-x0)/36;
+const X=i=>x0+i*bw;
+// top: cusecs
+const maxDem=Math.max(...rows.map(r=>r.demand));
+let ymax = Math.max(5000, Math.min(maxDem*1.08, 16000)); ymax=Math.ceil(ymax/2000)*2000;
+const Y=v=>pad.t+topH-(Math.min(v,ymax)/ymax)*topH;
+g.font='11px '+css('--f-mono'); g.fillStyle=ink2; g.textAlign='right'; g.textBaseline='middle';
+for(let v=0; v<=ymax; v+=ymax/4){ g.strokeStyle=grid; g.lineWidth=1; g.beginPath(); g.moveTo(x0,Y(v)); g.lineTo(x1,Y(v)); g.stroke(); g.fillText(fmt(v/1000,v%1000?1:0)+'k',x0-6,Y(v)); }
+g.save(); g.translate(12,pad.t+topH/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.fillText('cusecs',0,0); g.restore();
+// Kharif shading
+g.fillStyle=grid; g.fillRect(X(0),pad.t,bw*18,topH);
+g.fillStyle=ink3; g.textAlign='left'; g.textBaseline='top'; g.fillText('KHARIF',X(0)+4,pad.t+2); g.fillText('RABI',X(18)+4,pad.t+2);
+// bars
+const cols=[css('--water2'),css('--pj'),css('--warn'),css('--bad')];
+rows.forEach((r,i)=>{ let y=Y(0); [r.fromSurplus,r.fromPunjab,r.fromDelta,r.fromUsers].forEach((v,k)=>{ if(v<=0) return; const hh=(v/ymax)*topH; g.fillStyle=cols[k]; g.fillRect(X(i)+1.5,y-hh,bw-3,hh); y-=hh; }); });
+// IRSA schedule step line
+g.strokeStyle=ink3; g.lineWidth=1.2; g.setLineDash([3,3]); g.beginPath();
+DEKADS.forEach((dk,i)=>{ const v=(IRSA[MONTHS[dk.m]]||[0,0,0])[dk.d]; g.lineTo(X(i),Y(v)); g.lineTo(X(i+1),Y(v)); }); g.stroke();
+// design capacity
+g.strokeStyle=css('--canal'); g.lineWidth=1.5; g.setLineDash([6,4]); g.beginPath(); g.moveTo(x0,Y(4120)); g.lineTo(x1,Y(4120)); g.stroke(); g.setLineDash([]);
+g.fillStyle=css('--canal'); g.textAlign='right'; g.textBaseline='bottom'; g.font='600 11px '+css('--f-mono'); g.fillText('design 4,120',x1-2,Y(4120)-2);
+// demand line
+g.strokeStyle=ink; g.lineWidth=2; g.beginPath(); let started=false;
+rows.forEach((r,i)=>{ const xx=X(i)+bw/2, yy=Y(r.demand); if(!started){g.moveTo(xx,yy);started=true;} else g.lineTo(xx,yy); }); g.stroke();
+const pk = rows.reduce((a,r)=>r.demand>a.demand?r:a, rows[0]);
+if(pk.demand>0){ g.fillStyle=ink; g.textAlign='left'; g.textBaseline='bottom'; g.font='600 11px '+css('--f-mono'); const lx=Math.min(X(pk.i)+bw/2+6, x1-130); g.fillText('crop need '+fmt(Math.round(pk.demand))+(pk.demand>ymax?' (off scale)':''), lx, Math.max(Y(pk.demand)-3, pad.t+12)); }
+// bottom: Kotri log scale
+const by0=pad.t+topH+gap, by1=by0+botH;
+const L=v=>Math.log10(Math.max(v,100)); const lmin=2, lmax=6;
+const YB=v=> by1-((L(v)-lmin)/(lmax-lmin))*botH;
+g.font='11px '+css('--f-mono'); g.fillStyle=ink2; g.textAlign='right'; g.textBaseline='middle';
+[100,1000,10000,100000,1000000].forEach(v=>{ g.strokeStyle=grid; g.beginPath(); g.moveTo(x0,YB(v)); g.lineTo(x1,YB(v)); g.stroke(); g.fillText(v>=1e6?'1M':(v>=1000?(v/1000)+'k':v),x0-6,YB(v)); });
+g.save(); g.translate(12,(by0+by1)/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.fillText('below Kotri',0,0); g.restore();
+// before area
+g.fillStyle=css('--water2'); g.globalAlpha=.55; g.beginPath(); g.moveTo(X(0),by1);
+rows.forEach((r,i)=>{ g.lineTo(X(i),YB(r.K)); g.lineTo(X(i+1),YB(r.K)); }); g.lineTo(X(36),by1); g.closePath(); g.fill(); g.globalAlpha=1;
+// after line
+g.strokeStyle=css('--water'); g.lineWidth=2; g.beginPath(); rows.forEach((r,i)=>{ g.lineTo(X(i),YB(r.kotAfter)); g.lineTo(X(i+1),YB(r.kotAfter)); }); g.stroke();
+// minimum line
+if(S.kmin>0){ g.strokeStyle=css('--warn'); g.setLineDash([5,4]); g.lineWidth=1.5; g.beginPath(); g.moveTo(x0,YB(S.kmin)); g.lineTo(x1,YB(S.kmin)); g.stroke(); g.setLineDash([]);
+g.fillStyle=css('--warn'); g.textAlign='right'; g.textBaseline='bottom'; g.font='600 11px '+css('--f-mono'); g.fillText('delta minimum '+fmt(S.kmin),x1-2,YB(S.kmin)-2); }
+g.fillStyle=ink2; g.textAlign='left'; g.textBaseline='top'; g.font='11px '+css('--f-mono'); g.fillText('shaded: without canal   line: with canal (log scale)',x0+4,by0+2);
+// x labels
+g.fillStyle=ink2; g.textAlign='center'; g.textBaseline='top';
+MONTHS.forEach((m,i)=>{ if(w<560 && i%2) return; g.fillText(m, X(i*3)+bw*1.5, by1+6); });
+// cursor
+g.strokeStyle=ink; g.lineWidth=1; g.strokeRect(X(S.dekad)+.5, pad.t+.5, bw-1, by1-pad.t-1);
+CH.X=X; CH.bw=bw;
+}
+function chartPick(e){
+const r=chart.getBoundingClientRect(); const x=e.clientX-r.left; const i=Math.floor((x-CH.pad.l)/CH.bw);
+return (i>=0&&i<36)?i:null;
+}
+let dragging=false;
+chart.addEventListener('pointerdown',e=>{ const i=chartPick(e); if(i==null) return; dragging=true; stopPlay(); S.dekad=i; $('scrub').value=i; recompute(); });
+window.addEventListener('pointerup',()=>dragging=false);
+chart.addEventListener('pointermove',e=>{
+const i=chartPick(e); const tip=$('tip');
+if(i==null){ tip.hidden=true; return; }
+if(dragging && i!==S.dekad){ S.dekad=i; $('scrub').value=i; recompute(); }
+const r=RES.rows[i]; tip.hidden=false;
+tip.innerHTML=`${periodName(DEKADS[i])}<br>canal ${fcs(r.draw)} cs · need ${fcs(r.demand)}<br>Kotri ${fcs(r.K)} → ${fcs(r.kotAfter)}`;
+const box=chart.parentElement.getBoundingClientRect(); let lx=e.clientX-box.left+12; if(lx>box.width-190) lx=e.clientX-box.left-190; tip.style.left=lx+'px'; tip.style.top=(e.clientY-box.top-58)+'px';
+});
+chart.addEventListener('pointerleave',()=>{$('tip').hidden=true;});
+
+// ---------- map ----------
+const map=$('map'), mctx=map.getContext('2d'); const stat=document.createElement('canvas'); const sctx=stat.getContext('2d');
+let M={w:0,h:0,k:1,dpr:1,paths:{}}; let dirty=true; const markDirty=()=>dirty=true;
+function proj(ll){ return [ (ll[1]-B.lon0)*COSL*M.k, (B.lat1-ll[0])*M.k ]; }
+function sizeMap(){
+const w=map.parentElement.clientWidth; const ratio=(B.lat1-B.lat0)/((B.lon1-B.lon0)*COSL); const h=Math.round(Math.min(w*ratio, Math.max(560, window.innerHeight*1.1)));
+const dpr=window.devicePixelRatio||1; M.w=w; M.h=h; M.dpr=dpr; M.k=Math.min(w/((B.lon1-B.lon0)*COSL), h/(B.lat1-B.lat0));
+M.ox=(w-(B.lon1-B.lon0)*COSL*M.k)/2;
+map.style.height=h+'px'; map.width=Math.round(w*dpr); map.height=Math.round(h*dpr);
+stat.width=map.width; stat.height=map.height;
+const all={...RIV, ...Object.fromEntries(Object.entries(LINKS).map(([k,v])=>['l_'+k,v])), c_main:CANAL.main, c_marot:CANAL.marot};
+M.paths={}; for(const [k,v] of Object.entries(all)) M.paths[k]=v.map(P);
+drawStatic(); markDirty();
+}
+function P(ll){ const p=proj(ll); return [p[0]+M.ox, p[1]]; }
+function poly(g,pts,close){ g.beginPath(); pts.forEach((p,i)=> i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); if(close) g.closePath(); }
+function smooth(g,pts){ g.beginPath(); g.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length-1;i++){ const xc=(pts[i][0]+pts[i+1][0])/2, yc=(pts[i][1]+pts[i+1][1])/2; g.quadraticCurveTo(pts[i][0],pts[i][1],xc,yc); } const l=pts[pts.length-1]; g.lineTo(l[0],l[1]); }
+function drawStatic(){
+const g=sctx; g.setTransform(M.dpr,0,0,M.dpr,0,0); const {w,h}=M;
+g.fillStyle=css('--panel'); g.fillRect(0,0,w,h);
+// graticule
+g.strokeStyle=css('--grid'); g.lineWidth=1; g.font='10px '+css('--f-mono'); g.fillStyle=css('--ink3');
+for(let lat=24; lat<=34; lat++){ const a=P([lat,B.lon0]), b=P([lat,B.lon1]); g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke(); if(lat%2===0){ g.textAlign='left'; g.textBaseline='bottom'; g.fillText(lat+'°N', a[0]+3, a[1]-2);} }
+for(let lon=67; lon<=75; lon++){ const a=P([B.lat0,lon]), b=P([B.lat1,lon]); g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke(); if(lon%2===1){ g.textAlign='center'; g.textBaseline='bottom'; g.fillText(lon+'°E', a[0], h-3);} }
+// sea
+const coast=COAST.map(P); g.fillStyle=css('--sea'); g.beginPath(); g.moveTo(0,coast[0][1]); coast.forEach(p=>g.lineTo(p[0],p[1])); g.lineTo(coast[coast.length-1][0],h); g.lineTo(0,h); g.closePath(); g.fill();
+g.fillStyle=css('--ink3'); g.font='italic 12px '+css('--f-body'); g.textAlign='left'; const sp=P([24.2,67.0]); g.fillText('Arabian Sea', sp[0], sp[1]+18);
+// desert
+const d=DESERT.map(P); g.fillStyle=css('--sand'); g.globalAlpha=.85; smooth(g,[...d,d[0]]); g.closePath(); g.fill(); g.globalAlpha=1;
+// stipple
+g.save(); smooth(g,[...d,d[0]]); g.closePath(); g.clip(); g.fillStyle=css('--sandink'); g.globalAlpha=.35;
+let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647; return seed/2147483647;};
+for(let i=0;i<900;i++){ const x=rnd()*w, y=rnd()*h; g.fillRect(x,y,1.1,1.1); } g.restore(); g.globalAlpha=1;
+g.fillStyle=css('--sandink'); g.font='600 '+Math.round(12*sc())+'px '+css('--f-display'); g.textAlign='center'; g.save(); const cp=P([28.45,70.95]); g.translate(cp[0],cp[1]); g.rotate(0.55); g.fillText('C H O L I S T A N', 0, 0); g.restore();
+// border
+g.strokeStyle=css('--ink3'); g.lineWidth=1; g.setLineDash([2,4]); poly(g,BORDER.map(P)); g.stroke(); g.setLineDash([]);
+g.fillStyle=css('--ink3'); g.font='600 '+Math.round(11*sc())+'px '+css('--f-mono'); g.textAlign='left';
+const ip=P([27.55,71.6]); g.fillText('INDIA', ip[0], ip[1]);
+const pp=P([32.0,70.2]); g.fillText('PUNJAB', pp[0], pp[1]); const sdp=P([26.3,68.6]); g.fillText('SINDH', sdp[0], sdp[1]);
+g.font='10px '+css('--f-mono'); const bl=P([25.0,70.75]); g.fillText('border approx.', bl[0], bl[1]);
+// towns
+g.font='11px '+css('--f-body'); g.fillStyle=css('--ink2');
+TOWNS.forEach(t=>{ const p=P([t[1],t[2]]); g.beginPath(); g.arc(p[0],p[1],2,0,7); g.fill(); g.textAlign= t[0]==='Fort Abbas'?'right':'left'; g.fillText(t[0], p[0]+(t[0]==='Fort Abbas'?-5:5), p[1]+ (t[0]==='Hyderabad'?-6:4)); });
+// river names
+g.fillStyle=css('--water'); g.globalAlpha=.75; g.font='italic 600 '+Math.round(11*sc())+'px '+css('--f-body');
+RIVERNAMES.forEach(r=>{ const p=P([r[1],r[2]]); g.save(); g.translate(p[0],p[1]); g.rotate(r[3]); g.textAlign='center'; g.fillText(r[0],0,0); g.restore(); }); g.globalAlpha=1;
+// scale bar 100 km
+const kmpx = M.k/111; const sx=w-20-100*kmpx, sy=h-24; g.strokeStyle=css('--ink2'); g.lineWidth=2; g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+100*kmpx,sy); g.stroke(); g.font='10px '+css('--f-mono'); g.fillStyle=css('--ink2'); g.textAlign='center'; g.fillText('100 km', sx+50*kmpx, sy-10);
+}
+function sc(){ return Math.max(0.8, Math.min(1.25, M.w/560)); }
+const flowW = q=> q<=0.5 ? 0 : (1.1 + 1.7*Math.log10(1 + q/700))*sc();
+
+function segFlows(){
+const c=CUR; const F={};
+if(S.mode==='gauge'){
+const f=SNAPS[S.snap].f;
+Object.assign(F,{indusUp:f.Taunsa, indusMid:f.Guddu, indusSea:c.kotAfter, indusSeaBefore:f.Kotri, jhelumUp:f.Mangla, jhelumLow:f.Rasul, chenabUp:f.Marala||f.Khanki, chenabMid:f.Qadirabad, chenabLow:f.Trimmu, raviUp:f.BallokiIn, raviLow:f.Sidhnai||f.Balloki, sutlejUp:f.SulemankiIn, sutlejLow:Math.max(0,f.Sulemanki - Math.min(c.draw,f.Sulemanki)),
+l_rq:Math.max(0,f.RasulIn-f.Rasul), l_qb:Math.max(0,f.QadirabadIn-f.Qadirabad)*0.8, l_bs:Math.max(0,f.BallokiIn-f.Balloki)*0.7, fixed:false});
+} else {
+Object.assign(F,{indusUp:40000, indusMid:40000, indusSea:c.kotAfter, indusSeaBefore:c.K, jhelumUp:25000, jhelumLow:12000, chenabUp:30000, chenabMid:20000, chenabLow:30000, raviUp:8000, raviLow:6000, sutlejUp:c.S, sutlejLow:Math.max(0,c.S-Math.min(c.draw,c.S)), l_rq:12000, l_qb:12000, l_bs:10000, fixed:true});
+}
+F.proj=c.viaLink; F.c_main=c.draw; F.c_marot=c.draw*0.4;
+return F;
+}
+const cur={}; // animated widths
+function lerp(a,b,t){return a+(b-a)*t;}
+let last=performance.now(), phase=0;
+function frame(now){
+const dt=Math.min(0.05,(now-last)/1000); last=now; if(!reduceMotion) phase+=dt;
+if(M.w && CUR){ render(dt); }
+requestAnimationFrame(frame);
+}
+function strokePath(g,pts,wid,color,dashOff,dashCol,alpha){
+if(wid<=0) return;
+g.lineCap='round'; g.lineJoin='round';
+g.globalAlpha=alpha??1; g.strokeStyle=color; g.lineWidth=wid; smooth(g,pts); g.stroke();
+if(dashCol && !reduceMotion){ g.strokeStyle=dashCol; g.lineWidth=Math.max(1,wid*0.45); g.setLineDash([Math.max(2,wid*0.9), 11*sc()]); g.lineDashOffset=-dashOff; smooth(g,pts); g.stroke(); g.setLineDash([]); }
+g.globalAlpha=1;
+}
+function dryPath(g,pts){ g.strokeStyle=css('--dry'); g.lineWidth=1.4*sc(); g.setLineDash([3,4]); smooth(g,pts); g.stroke(); g.setLineDash([]); }
+function render(dt){
+const g=mctx; g.setTransform(M.dpr,0,0,M.dpr,0,0);
+g.drawImage(stat,0,0,M.w,M.h);
+const F=segFlows(); const t=Math.min(1,dt*6);
+for(const k in F){ if(typeof F[k]==='number'){ cur[k]=lerp(cur[k]??F[k],F[k],t); } }
+const water=css('--water'), water2=css('--water2'), canal=css('--canal'), canal2=css('--canal2'), ink3=css('--ink3'), panel=css('--panel');
+const spd = q=> (18 + 14*Math.log10(1+q/1000))*sc();
+const lite = css('--panel');
+// command area tint
+const cm=COMMAND.map(P); const metFrac = CUR.demand>0 ? Math.min(1, CUR.draw/CUR.demand) : 0;
+g.fillStyle=css('--ok'); g.globalAlpha= CUR.demand>0 ? 0.12+0.55*metFrac : 0.06; smooth(g,[...cm,cm[0]]); g.closePath(); g.fill(); g.globalAlpha=1;
+g.strokeStyle=css('--ok'); g.lineWidth=1; g.setLineDash([4,3]); smooth(g,[...cm,cm[0]]); g.closePath(); g.stroke(); g.setLineDash([]);
+// existing links
+['rq','qb','bs'].forEach(k=>{ const q=cur['l_'+k]; const pts=M.paths['l_'+k]; const wd=Math.max(1.2*sc(), flowW(q)*0.8);
+if(q<1){ dryPath(g,pts); } else strokePath(g,pts,wd,ink3,phase*spd(q)*0.6,lite,0.85); });
+// rivers
+const rk=['indusUp','indusMid','jhelumUp','jhelumLow','chenabUp','chenabMid','chenabLow','raviUp','raviLow','sutlejUp','sutlejLow','indusSea'];
+rk.forEach(k=>{ const q=cur[k]; const pts=M.paths[k];
+if(k==='indusSea' && cur.indusSeaBefore>q+1){ strokePath(g,pts,flowW(cur.indusSeaBefore),water2,0,null,0.55); }
+if(q<1){ dryPath(g,pts); return; }
+const fixed = F.fixed && !['sutlejUp','sutlejLow','indusSea'].includes(k);
+strokePath(g,pts,flowW(q),fixed?water2:water,phase*spd(q),fixed?null:lite, fixed?0.9:1);
+});
+// project water through links
+if(cur.proj>1){ ['rq','qb','bs'].forEach(k=> strokePath(g,M.paths['l_'+k],Math.max(2*sc(),flowW(cur.proj)*0.9),canal,phase*spd(cur.proj),lite,1)); }
+// canal
+const cw=cur.c_main;
+if(cw<1){ dryPath(g,M.paths.c_main); dryPath(g,M.paths.c_marot); }
+else { strokePath(g,M.paths.c_main,Math.max(2*sc(),flowW(cw)*1.1),canal,phase*spd(cw),lite,1); strokePath(g,M.paths.c_marot,Math.max(1.6*sc(),flowW(cur.c_marot)),canal,phase*spd(cw),lite,1); }
+// nodes
+NODES.forEach(n=>{ const p=P(n.ll); const r=(n.key?5:(n.minor?2.6:3.6))*sc();
+g.fillStyle=n.key?css('--ink'):panel; g.strokeStyle=css('--ink'); g.lineWidth=1.4; g.beginPath();
+if(n.k==='dam'){ g.rect(p[0]-r,p[1]-r,2*r,2*r); } else g.arc(p[0],p[1],r,0,7); g.fill(); g.stroke();
+if(!n.minor || M.w>620){ g.fillStyle=css('--ink'); g.font=(n.key?'700 ':'600 ')+Math.round((n.key?12.5:11)*sc())+'px '+css('--f-body'); g.textAlign='left'; g.textBaseline='middle';
+const off = {Sulemanki:[9,-10],Rasul:[-48,10],Qadirabad:[-62,10],Balloki:[9,-6],Trimmu:[-46,-8],Panjnad:[-52,10],Kotri:[9,0],Mangla:[9,0],Tarbela:[9,0],Marala:[8,-8],Islam:[6,9],Khanki:[6,-8],Sidhnai:[-44,10],Kalabagh:[8,0],Chashma:[8,0],Taunsa:[8,0],Guddu:[8,0],Sukkur:[8,0]}[n.id]||[8,0];
+g.fillText(n.id, p[0]+off[0], p[1]+off[1]); }
+});
+// callouts
+const c=CUR; g.textBaseline='middle';
+callout(g, P([30.38,73.87]), [14,22], ['SULEMANKI', 'Sutlej '+fcs(c.S)+' cs', 'Canal takes '+fcs(c.draw)+' cs'], c.draw>0?canal:css('--ink2'));
+callout(g, P([25.37,68.31]), [16,24], ['BELOW KOTRI', fcs(c.K)+' → '+fcs(c.kotAfter)+' cs', c.fromUsers>1?'Sindh supplies cut':(c.fromDelta>1?'Delta minimum cut':'Delta minimum '+(c.kotAfter>=S.kmin?'kept':'not met'))], (c.fromUsers>1||c.fromDelta>1)?css('--bad'):water);
+if(c.viaLink>1) callout(g, P([31.85,73.76]), [16,-6], ['LINK CANALS', '+'+fcs(c.viaLink)+' cs to Cholistan'], canal);
+const cmP=P([29.10,72.55]);
+callout(g, cmP, [24*sc(),58*sc()], ['COMMAND AREA', CUR.demand>0? Math.round(metFrac*100)+'% of crop need met' : 'Crop not in field', fmt(S.area)+' acres'], css('--ok'));
+}
+function callout(g,p,off,lines,col){
+const x=p[0]+off[0], y=p[1]+off[1]; const s=sc();
+g.font='600 '+Math.round(10.5*s)+'px '+css('--f-mono'); let wmax=0; lines.forEach((l,i)=>{ g.font=(i===0?'600 ':'500 ')+Math.round((i===0?10:11.5)*s)+'px '+css('--f-mono'); wmax=Math.max(wmax,g.measureText(l).width); });
+const lh=15*s, bw=wmax+14, bh=lines.length*lh+8;
+let bx=Math.max(4,Math.min(M.w-bw-4,x)), by=Math.max(4,Math.min(M.h-bh-4,y));
+g.strokeStyle=col; g.lineWidth=1; g.beginPath(); g.moveTo(p[0],p[1]); g.lineTo(bx+(bx>p[0]?0:bw), by+bh/2); g.stroke();
+g.fillStyle=css('--panel'); g.globalAlpha=.94; g.fillRect(bx,by,bw,bh); g.globalAlpha=1; g.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+g.fillStyle=col; g.fillRect(bx,by,3,bh);
+lines.forEach((l,i)=>{ g.fillStyle=i===0?col:css('--ink'); g.font=(i===0?'600 ':'500 ')+Math.round((i===0?10:11.5)*s)+'px '+css('--f-mono'); g.textAlign='left'; g.fillText(l,bx+8,by+4+lh*(i+0.5)); });
+}
+
+// ---------- boot ----------
+function resizeAll(){ sizeMap(); sizeChart(); drawChart(); }
+window.addEventListener('resize', ()=>{ clearTimeout(window._rz); window._rz=setTimeout(resizeAll,120); });
+const reTheme=()=>{ drawStatic(); drawChart(); };
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', reTheme);
+new MutationObserver(reTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+bindControls(); buildWhen(); $('scrub').value=S.dekad;
+resizeAll(); recompute();
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ drawStatic(); drawChart(); });
+requestAnimationFrame(frame);
+</script>
+
+</body></html>
